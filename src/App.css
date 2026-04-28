@@ -1,0 +1,249 @@
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px;
+  text-align: left;
+}
+
+.hero-panel,
+.toolbar,
+.team-card,
+.combatant-card,
+.results-panel {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel-bg);
+  box-shadow: var(--shadow);
+}
+
+.hero-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  align-items: stretch;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lead {
+  max-width: 720px;
+  font-size: 18px;
+}
+
+.score-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+  padding: 18px;
+  border-radius: 14px;
+  background: var(--accent-bg);
+}
+
+.score-card strong {
+  color: var(--text-h);
+  font-size: 32px;
+  line-height: 1;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr)) repeat(3, auto);
+  gap: 12px;
+  padding: 16px;
+  align-items: end;
+}
+
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.team-card,
+.results-panel {
+  padding: 20px;
+}
+
+.team-header,
+.combatant-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.team-header {
+  margin-bottom: 16px;
+}
+
+.team-header strong,
+.combatant-header strong {
+  color: var(--text-h);
+  font-size: 24px;
+}
+
+.combatants {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.combatant-card {
+  padding: 16px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 10px;
+  color: var(--text-h);
+  background: var(--input-bg);
+  font: inherit;
+}
+
+.name-input {
+  max-width: 240px;
+  color: var(--text-h);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+button {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: white;
+  background: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+button:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.secondary {
+  color: var(--text-h);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.danger {
+  width: 100%;
+  margin-top: 12px;
+  color: var(--danger);
+  background: transparent;
+  border-color: var(--border);
+}
+
+.full-width {
+  width: 100%;
+}
+
+.breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.breakdown span {
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--text-h);
+  background: var(--chip-bg);
+  font-size: 12px;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.metric {
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--chip-bg);
+}
+
+.metric span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.metric strong {
+  color: var(--text-h);
+  font-size: 22px;
+}
+
+.battle-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.battle-log li span {
+  display: inline-block;
+  min-width: 58px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@media (max-width: 1024px) {
+  .app-shell {
+    padding: 18px;
+  }
+
+  .hero-panel,
+  .teams-grid {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .toolbar,
+  .results-grid,
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

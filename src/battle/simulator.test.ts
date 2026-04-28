@@ -1,0 +1,115 @@
+import { describe, expect, it } from 'vitest'
+import { createCombatant } from './presets'
+import { runSimulations, simulateBattle } from './simulator'
+import type { Team } from './types'
+
+const team = (name: string, members = [createCombatant(`${name}-1`, `${name} hero`)]): Team => ({
+  name,
+  members,
+})
+
+describe('battle simulator', () => {
+  it('finishes a battle between teams with up to four combatants', () => {
+    const result = simulateBattle(
+      team('A', [
+        createCombatant('a-1', 'A1'),
+        createCombatant('a-2', 'A2', { areaAttack: 0.35 }),
+        createCombatant('a-3', 'A3', { lifesteal: 10 }),
+        createCombatant('a-4', 'A4', { thorns: 0.1 }),
+      ]),
+      team('B', [
+        createCombatant('b-1', 'B1'),
+        createCombatant('b-2', 'B2'),
+        createCombatant('b-3', 'B3'),
+        createCombatant('b-4', 'B4'),
+      ]),
+      { seed: 42 },
+    )
+
+    expect(result.events).toBeGreaterThan(0)
+    expect(result.duration).toBeGreaterThan(0)
+    expect(result.log[0].targetHealthAfter).toBeGreaterThanOrEqual(0)
+    expect(['A', 'B', 'draw']).toContain(result.winner)
+  })
+
+  it('keeps identical teams close to an even win rate', () => {
+    const mirrorA = team('A', [createCombatant('a-1', 'Mirror A')])
+    const mirrorB = team('B', [createCombatant('b-1', 'Mirror B')])
+    const summary = runSimulations(mirrorA, mirrorB, 500, { seed: 100 })
+
+    expect(summary.winRateA).toBeGreaterThan(0.4)
+    expect(summary.winRateA).toBeLessThan(0.6)
+  })
+
+  it('waits a full attack cooldown before the first attack', () => {
+    const result = simulateBattle(
+      team('A', [createCombatant('hero', 'Hero', { attack: 1, health: 1000, attackSpeed: 100, critChance: 0 })]),
+      team('B', [createCombatant('monster', 'Monster', { attack: 1, health: 1000, attackSpeed: 200, critChance: 0 })]),
+      { seed: 7, logLimit: 3 },
+    )
+
+    expect(result.log[0].actor).toBe('Monster')
+    expect(result.log[0].time).toBeCloseTo(0.5)
+    expect(result.log[1].time).toBeCloseTo(1)
+    expect(result.log[2].time).toBeCloseTo(1)
+  })
+
+  it('keeps attacking the same target until it dies', () => {
+    const result = simulateBattle(
+      team('A', [createCombatant('hero', 'Hero', { attack: 10, health: 1000, attackSpeed: 300, critChance: 0 })]),
+      team('B', [
+        createCombatant('enemy-1', 'Enemy 1', { attack: 1, health: 100, armor: 0, attackSpeed: 10, critChance: 0 }),
+        createCombatant('enemy-2', 'Enemy 2', { attack: 1, health: 100, armor: 0, attackSpeed: 10, critChance: 0 }),
+      ]),
+      { seed: 11, logLimit: 6 },
+    )
+
+    const heroAttacks = result.log.filter((entry) => entry.actor === 'Hero' && entry.type === 'attack')
+
+    expect(heroAttacks[0].target).toBe(heroAttacks[1].target)
+    expect(heroAttacks[1].targetHealthAfter).toBe(80)
+  })
+
+  it('logs area attack as separate damage events for every alive enemy', () => {
+    const result = simulateBattle(
+      team('A', [
+        createCombatant('hero', 'Hero', {
+          attack: 25,
+          health: 1000,
+          armor: 0,
+          attackSpeed: 200,
+          critChance: 0,
+          areaAttack: 0.4,
+        }),
+      ]),
+      team('B', [
+        createCombatant('enemy-1', 'Enemy 1', { attack: 1, health: 100, armor: 0, attackSpeed: 10, critChance: 0 }),
+        createCombatant('enemy-2', 'Enemy 2', { attack: 1, health: 100, armor: 0, attackSpeed: 10, critChance: 0 }),
+      ]),
+      { seed: 17, logLimit: 3 },
+    )
+
+    expect(result.log[0]).toMatchObject({ actor: 'Hero', type: 'attack', damage: 25, targetHealthAfter: 75 })
+    expect(result.log.slice(1)).toHaveLength(2)
+    expect(result.log.slice(1).every((entry) => entry.actor === 'Hero' && entry.type === 'area')).toBe(true)
+    expect(result.log.slice(1).map((entry) => entry.damage)).toEqual([10, 10])
+    expect(result.log.slice(1).map((entry) => entry.target).sort()).toEqual(['Enemy 1', 'Enemy 2'])
+  })
+
+  it('makes lifesteal, area attack, and thorns affect outcomes', () => {
+    const plain = team('plain', [createCombatant('plain-1', 'Plain')])
+    const sustain = team('sustain', [createCombatant('sustain-1', 'Sustain', { lifesteal: 30 })])
+    const aoe = team('aoe', [createCombatant('aoe-1', 'Aoe', { areaAttack: 0.7 })])
+    const thorns = team('thorns', [createCombatant('thorns-1', 'Thorns', { thorns: 0.25 })])
+    const swarm = team('swarm', [
+      createCombatant('swarm-1', 'Swarm 1', { attack: 18, health: 210, armor: 0 }),
+      createCombatant('swarm-2', 'Swarm 2', { attack: 18, health: 210, armor: 0 }),
+    ])
+
+    expect(runSimulations(sustain, plain, 120, { seed: 1 }).winRateA).toBeGreaterThan(0.65)
+    expect(runSimulations(aoe, swarm, 120, { seed: 2 }).winRateA).toBeGreaterThan(
+      runSimulations(plain, swarm, 120, { seed: 2 }).winRateA,
+    )
+    expect(runSimulations(thorns, plain, 120, { seed: 3 }).winRateA).toBeGreaterThan(0.55)
+  })
+})

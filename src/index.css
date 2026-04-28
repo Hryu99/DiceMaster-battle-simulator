@@ -1,0 +1,106 @@
+:root {
+  --text: #526070;
+  --text-muted: #667085;
+  --text-h: #111827;
+  --bg: #f4f7fb;
+  --panel-bg: #ffffff;
+  --input-bg: #ffffff;
+  --chip-bg: #f1f5f9;
+  --border: #dbe3ee;
+  --accent: #5b5bd6;
+  --accent-bg: rgba(91, 91, 214, 0.1);
+  --accent-border: rgba(91, 91, 214, 0.32);
+  --danger: #b42318;
+  --shadow: rgba(15, 23, 42, 0.05) 0 10px 30px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #aab3c2;
+    --text-muted: #8d96a7;
+    --text-h: #f8fafc;
+    --bg: #0f172a;
+    --panel-bg: #111c30;
+    --input-bg: #0b1220;
+    --chip-bg: #1b2940;
+    --border: #26364f;
+    --accent: #8b8cf6;
+    --accent-bg: rgba(139, 140, 246, 0.14);
+    --accent-border: rgba(139, 140, 246, 0.45);
+    --danger: #f97066;
+    --shadow: rgba(0, 0, 0, 0.26) 0 14px 38px;
+  }
+}
+
+#root {
+  width: 1440px;
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 100svh;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2 {
+  font-family: var(--heading);
+  font-weight: 750;
+  color: var(--text-h);
+}
+
+h1 {
+  font-size: clamp(36px, 5vw, 64px);
+  letter-spacing: -0.06em;
+  line-height: 0.96;
+  margin: 0 0 18px;
+  @media (max-width: 1024px) {
+    font-size: 36px;
+  }
+}
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0;
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
+}
+p {
+  margin: 0;
+}
+
+code,
+button {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
+}
