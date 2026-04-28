@@ -26,6 +26,7 @@ const statFields: Array<{
 const cloneTeam = (team: Team): Team => JSON.parse(JSON.stringify(team)) as Team
 const formatNumber = (value: number, digits = 0) => value.toLocaleString('ru-RU', { maximumFractionDigits: digits })
 const formatPercent = (value: number) => `${formatNumber(value * 100, 1)}%`
+const createMemberName = (teamName: string, memberNumber: number) => `${teamName}_${memberNumber}`
 
 function App() {
   const [teamA, setTeamA] = useState<Team>(() => cloneTeam(initialTeamA))
@@ -121,7 +122,10 @@ function TeamEditor({ side, team, powerDiff, onUpdate }: TeamEditorProps) {
       ...draft,
       members: [
         ...draft.members,
-        createCombatant(`${side.toLowerCase()}-${Date.now()}`, `Боец ${draft.members.length + 1}`),
+        createCombatant(
+          `${side.toLowerCase()}-${Date.now()}`,
+          createMemberName(draft.name, draft.members.length + 1),
+        ),
       ],
     }))
   }
@@ -137,9 +141,7 @@ function TeamEditor({ side, team, powerDiff, onUpdate }: TeamEditorProps) {
     <article className="team-card">
       <div className="team-header">
         <div>
-          <h2>
-            {team.name} <span>({side})</span>
-          </h2>
+          <h2>{team.name}</h2>
         </div>
         <div className="team-power">
           <strong>Сила {formatNumber(teamPower)}</strong>

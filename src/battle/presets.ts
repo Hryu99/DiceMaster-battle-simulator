@@ -4,11 +4,11 @@ export const createCombatant = (id: string, name: string, overrides: Partial<Com
   id,
   name,
   stats: {
-    attack: 30,
-    health: 300,
-    armor: 20,
+    attack: 25,
+    health: 100,
+    armor: 10,
     attackSpeed: 100,
-    critChance: 10,
+    critChance: 0,
     critDamage: 150,
     lifesteal: 0,
     areaAttack: 0,
@@ -18,47 +18,15 @@ export const createCombatant = (id: string, name: string, overrides: Partial<Com
 })
 
 export const initialTeamA: Team = {
-  name: 'Команда A',
+  name: 'Герой',
   members: [
-    createCombatant('a-1', 'Рыцарь', {
-      attack: 34,
-      health: 360,
-      armor: 38,
-      attackSpeed: 85,
-      thorns: 8,
-    }),
-    createCombatant('a-2', 'Дуэлянт', {
-      attack: 28,
-      health: 250,
-      armor: 14,
-      attackSpeed: 135,
-      critChance: 22,
-      critDamage: 180,
-      lifesteal: 8,
-    }),
+    createCombatant('a-1', 'Герой_1'),
   ],
 }
 
 export const initialTeamB: Team = {
-  name: 'Команда B',
+  name: 'Монстр',
   members: [
-    createCombatant('b-1', 'Берсерк', {
-      attack: 42,
-      health: 330,
-      armor: 18,
-      attackSpeed: 95,
-      critChance: 18,
-      critDamage: 170,
-      lifesteal: 5,
-    }),
-    createCombatant('b-2', 'Маг бури', {
-      attack: 24,
-      health: 220,
-      armor: 8,
-      attackSpeed: 110,
-      critChance: 12,
-      critDamage: 160,
-      areaAttack: 45,
-    }),
+    createCombatant('b-1', 'Монстр_1'),
   ],
 }

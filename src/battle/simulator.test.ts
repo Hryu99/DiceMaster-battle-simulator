@@ -183,8 +183,11 @@ describe('battle simulator', () => {
 
   it('makes lifesteal, area attack, and thorns affect outcomes', () => {
     const plain = team('plain', [createCombatant('plain-1', 'Plain')])
+    const plainVsSwarm = team('plain-vs-swarm', [
+      createCombatant('plain-vs-swarm-1', 'Plain vs swarm', { attack: 35, health: 180, armor: 10 }),
+    ])
     const sustain = team('sustain', [createCombatant('sustain-1', 'Sustain', { lifesteal: 30 })])
-    const aoe = team('aoe', [createCombatant('aoe-1', 'Aoe', { areaAttack: 70 })])
+    const aoe = team('aoe', [createCombatant('aoe-1', 'Aoe', { attack: 35, health: 180, armor: 10, areaAttack: 70 })])
     const thorns = team('thorns', [createCombatant('thorns-1', 'Thorns', { thorns: 25 })])
     const swarm = team('swarm', [
       createCombatant('swarm-1', 'Swarm 1', { attack: 18, health: 210, armor: 0 }),
@@ -193,7 +196,7 @@ describe('battle simulator', () => {
 
     expect(runSimulations(sustain, plain, 120, { seed: 1 }).winRateA).toBeGreaterThan(0.65)
     expect(runSimulations(aoe, swarm, 120, { seed: 2 }).winRateA).toBeGreaterThan(
-      runSimulations(plain, swarm, 120, { seed: 2 }).winRateA,
+      runSimulations(plainVsSwarm, swarm, 120, { seed: 2 }).winRateA,
     )
     expect(runSimulations(thorns, plain, 120, { seed: 3 }).winRateA).toBeGreaterThan(0.55)
   })

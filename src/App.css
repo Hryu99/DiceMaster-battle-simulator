@@ -95,12 +95,6 @@
   font-weight: 700;
 }
 
-.team-header h2 span {
-  color: var(--text-muted);
-  font-size: 14px;
-  font-weight: 650;
-}
-
 .combatants {
   display: flex;
   flex-direction: column;
