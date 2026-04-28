@@ -148,6 +148,7 @@ function performAttack(
   let totalDamage = mainDamage
   const mainDefeated = target.health <= 0 ? [target.source.name] : []
   const areaLogEntries: BattleLogEntry[] = []
+  const thornsSources = mainDamage > 0 ? [target] : []
 
   if (actor.stats.areaAttack > 0) {
     const areaDamage = rawDamage * actor.stats.areaAttack
@@ -175,10 +176,6 @@ function performAttack(
   const lifesteal = Math.min(actor.stats.health - actor.health, totalDamage * actor.stats.lifesteal)
   actor.health += lifesteal
 
-  const thorns = rawDamage * target.stats.thorns
-  actor.health = Math.max(0, actor.health - thorns)
-  if (actor.health <= 0) mainDefeated.push(actor.source.name)
-
   pushLog(log, logLimit, {
     type: 'attack',
     time,
@@ -188,13 +185,15 @@ function performAttack(
     targetHealthAfter: mainTargetHealthAfter,
     isCrit,
     lifesteal,
-    thorns,
+    thorns: 0,
     defeated: [...new Set(mainDefeated)],
   })
 
   for (const areaLogEntry of areaLogEntries) {
     pushLog(log, logLimit, areaLogEntry)
   }
+
+  applyThorns(actor, thornsSources, log, logLimit, time)
 }
 
 function getAttackTarget(actor: FighterState, enemies: FighterState[], rng: RandomSource): FighterState {
@@ -211,6 +210,33 @@ function getAttackTarget(actor: FighterState, enemies: FighterState[], rng: Rand
 function pushLog(log: BattleLogEntry[], logLimit: number, entry: BattleLogEntry): void {
   if (log.length < logLimit) {
     log.push(entry)
+  }
+}
+
+function applyThorns(
+  actor: FighterState,
+  thornsSources: FighterState[],
+  log: BattleLogEntry[],
+  logLimit: number,
+  time: number,
+): void {
+  for (const source of thornsSources) {
+    if (actor.health <= 0 || source.stats.thorns <= 0) continue
+
+    const thornsDamage = applyDamage(actor, source.stats.thorns)
+
+    pushLog(log, logLimit, {
+      type: 'thorns',
+      time,
+      actor: source.source.name,
+      target: actor.source.name,
+      damage: thornsDamage,
+      targetHealthAfter: actor.health,
+      isCrit: false,
+      lifesteal: 0,
+      thorns: thornsDamage,
+      defeated: actor.health <= 0 ? [actor.source.name] : [],
+    })
   }
 }
 

@@ -23,8 +23,8 @@ describe('calculatePower', () => {
     ['critChance', { critChance: 25 }],
     ['critDamage', { critDamage: 200 }],
     ['lifesteal', { lifesteal: 15 }],
-    ['areaAttack', { areaAttack: 0.5 }],
-    ['thorns', { thorns: 0.15 }],
+    ['areaAttack', { areaAttack: 50 }],
+    ['thorns', { thorns: 15 }],
   ] as const)('does not reduce power when %s grows', (_name, overrides) => {
     const basePower = calculatePower(baseStats, 4).power
     const improvedPower = calculatePower({ ...baseStats, ...overrides }, 4).power
@@ -33,8 +33,8 @@ describe('calculatePower', () => {
   })
 
   it('values area attack only when there are extra targets', () => {
-    const singleTargetPower = calculatePower({ ...baseStats, areaAttack: 0.8 }, 1).power
-    const multiTargetPower = calculatePower({ ...baseStats, areaAttack: 0.8 }, 4).power
+    const singleTargetPower = calculatePower({ ...baseStats, areaAttack: 80 }, 1).power
+    const multiTargetPower = calculatePower({ ...baseStats, areaAttack: 80 }, 4).power
 
     expect(multiTargetPower).toBeGreaterThan(singleTargetPower)
   })

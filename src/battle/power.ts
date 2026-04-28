@@ -20,8 +20,8 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
     critChance: clamp(stats.critChance / 100, 0, 1),
     critDamage: Math.max(1, stats.critDamage / 100),
     lifesteal: clamp(stats.lifesteal / 100, 0, 1),
-    areaAttack: clamp(stats.areaAttack, 0, 1),
-    thorns: clamp(stats.thorns, 0, 1),
+    areaAttack: clamp(stats.areaAttack / 100, 0, 1),
+    thorns: Math.max(0, stats.thorns),
   }
 }
 
@@ -35,8 +35,8 @@ export function calculatePower(statsInput: CombatantStats, enemyCount = 1): Powe
   const effectiveDps = dps * areaMultiplier
   const sustain = effectiveDps * stats.lifesteal * POWER_CONSTANTS.lifestealEfficiency
   const sustainMultiplier = 1 + sustain / Math.max(1, effectiveDps + effectiveHealth / 20)
-  const thornsValue = effectiveHealth * stats.thorns * POWER_CONSTANTS.thornsEfficiency
-  const power = Math.sqrt((effectiveHealth + thornsValue) * effectiveDps) * sustainMultiplier
+  const thornsValue = stats.thorns * Math.sqrt(effectiveHealth) * POWER_CONSTANTS.thornsEfficiency
+  const power = Math.sqrt(effectiveHealth * (effectiveDps + thornsValue)) * sustainMultiplier
 
   return {
     effectiveHealth,

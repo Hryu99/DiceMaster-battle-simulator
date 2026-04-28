@@ -19,8 +19,8 @@ const statFields: Array<{
   { key: 'critChance', label: 'Шанс крита, %', step: 1, min: 0, max: 100 },
   { key: 'critDamage', label: 'Урон крита, %', step: 5, min: 100 },
   { key: 'lifesteal', label: 'Lifesteal, %', step: 1, min: 0, max: 100 },
-  { key: 'areaAttack', label: 'Массовая атака', step: 0.01, min: 0, max: 1 },
-  { key: 'thorns', label: 'Шипы', step: 0.01, min: 0, max: 1 },
+  { key: 'areaAttack', label: 'Массовая атака, %', step: 1, min: 0, max: 100 },
+  { key: 'thorns', label: 'Шипы', step: 1, min: 0 },
 ]
 
 const cloneTeam = (team: Team): Team => JSON.parse(JSON.stringify(team)) as Team
@@ -285,12 +285,11 @@ function ResultsPanel({ summary }: { summary: SimulationSummary }) {
           <li key={`${entry.time}-${index}`}>
             <span>{formatNumber(entry.time, 2)} c</span>
             {' '}
-            {entry.actor} {entry.type === 'area' ? 'массово атакует' : 'атакует'} {entry.target}:{' '}
+            {entry.actor} {formatLogAction(entry.type)} {entry.target}:{' '}
             {formatNumber(entry.damage, 1)} урона, HP цели{' '}
             {formatNumber(entry.targetHealthAfter, 1)}
             {entry.isCrit ? ' (крит)' : ''}
             {entry.lifesteal > 0 ? `, лечение ${formatNumber(entry.lifesteal, 1)}` : ''}
-            {entry.thorns > 0 ? `, шипы ${formatNumber(entry.thorns, 1)}` : ''}
             {entry.defeated.length > 0 ? `, выбыл: ${entry.defeated.join(', ')}` : ''}
           </li>
         ))}
@@ -306,6 +305,12 @@ function Metric({ label, value }: { label: string; value: string }) {
       <strong>{value}</strong>
     </div>
   )
+}
+
+function formatLogAction(type: SimulationSummary['sampleBattle']['log'][number]['type']): string {
+  if (type === 'area') return 'массово атакует'
+  if (type === 'thorns') return 'бьет шипами'
+  return 'атакует'
 }
 
 export default App

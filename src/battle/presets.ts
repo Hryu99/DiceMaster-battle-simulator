@@ -25,7 +25,7 @@ export const initialTeamA: Team = {
       health: 360,
       armor: 38,
       attackSpeed: 85,
-      thorns: 0.08,
+      thorns: 8,
     }),
     createCombatant('a-2', 'Дуэлянт', {
       attack: 28,
@@ -58,7 +58,7 @@ export const initialTeamB: Team = {
       attackSpeed: 110,
       critChance: 12,
       critDamage: 160,
-      areaAttack: 0.45,
+      areaAttack: 45,
     }),
   ],
 }

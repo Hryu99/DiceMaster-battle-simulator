@@ -13,9 +13,9 @@ describe('battle simulator', () => {
     const result = simulateBattle(
       team('A', [
         createCombatant('a-1', 'A1'),
-        createCombatant('a-2', 'A2', { areaAttack: 0.35 }),
+        createCombatant('a-2', 'A2', { areaAttack: 35 }),
         createCombatant('a-3', 'A3', { lifesteal: 10 }),
-        createCombatant('a-4', 'A4', { thorns: 0.1 }),
+        createCombatant('a-4', 'A4', { thorns: 10 }),
       ]),
       team('B', [
         createCombatant('b-1', 'B1'),
@@ -79,7 +79,7 @@ describe('battle simulator', () => {
           armor: 0,
           attackSpeed: 200,
           critChance: 0,
-          areaAttack: 0.4,
+          areaAttack: 40,
         }),
       ]),
       team('B', [
@@ -96,11 +96,70 @@ describe('battle simulator', () => {
     expect(result.log.slice(1).map((entry) => entry.target).sort()).toEqual(['Enemy 1', 'Enemy 2'])
   })
 
+  it('does not trigger thorns from area attack hits', () => {
+    const result = simulateBattle(
+      team('A', [
+        createCombatant('hero', 'Hero', {
+          attack: 20,
+          health: 100,
+          armor: 0,
+          attackSpeed: 200,
+          critChance: 0,
+          areaAttack: 50,
+        }),
+      ]),
+      team('B', [
+        createCombatant('thorny', 'Thorny', { attack: 1, health: 100, armor: 0, attackSpeed: 10, critChance: 0, thorns: 10 }),
+        createCombatant('other', 'Other', { attack: 1, health: 100, armor: 0, attackSpeed: 10, critChance: 0, thorns: 10 }),
+      ]),
+      { seed: 17, logLimit: 5 },
+    )
+
+    const thornsEntries = result.log.filter((entry) => entry.type === 'thorns')
+
+    expect(thornsEntries).toHaveLength(1)
+    expect(thornsEntries[0].actor).toBe(result.log[0].target)
+  })
+
+  it('logs thorns as separate armor-reduced return damage', () => {
+    const result = simulateBattle(
+      team('A', [
+        createCombatant('attacker', 'Attacker', {
+          attack: 1,
+          health: 100,
+          armor: 100,
+          attackSpeed: 200,
+          critChance: 0,
+        }),
+      ]),
+      team('B', [
+        createCombatant('thorny', 'Thorny', {
+          attack: 1,
+          health: 100,
+          armor: 0,
+          attackSpeed: 10,
+          critChance: 0,
+          thorns: 10,
+        }),
+      ]),
+      { seed: 21, logLimit: 2 },
+    )
+
+    expect(result.log[0]).toMatchObject({ actor: 'Attacker', target: 'Thorny', type: 'attack', damage: 1 })
+    expect(result.log[1]).toMatchObject({
+      actor: 'Thorny',
+      target: 'Attacker',
+      type: 'thorns',
+      damage: 5,
+      targetHealthAfter: 95,
+    })
+  })
+
   it('makes lifesteal, area attack, and thorns affect outcomes', () => {
     const plain = team('plain', [createCombatant('plain-1', 'Plain')])
     const sustain = team('sustain', [createCombatant('sustain-1', 'Sustain', { lifesteal: 30 })])
-    const aoe = team('aoe', [createCombatant('aoe-1', 'Aoe', { areaAttack: 0.7 })])
-    const thorns = team('thorns', [createCombatant('thorns-1', 'Thorns', { thorns: 0.25 })])
+    const aoe = team('aoe', [createCombatant('aoe-1', 'Aoe', { areaAttack: 70 })])
+    const thorns = team('thorns', [createCombatant('thorns-1', 'Thorns', { thorns: 25 })])
     const swarm = team('swarm', [
       createCombatant('swarm-1', 'Swarm 1', { attack: 18, health: 210, armor: 0 }),
       createCombatant('swarm-2', 'Swarm 2', { attack: 18, health: 210, armor: 0 }),

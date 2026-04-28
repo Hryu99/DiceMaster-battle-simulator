@@ -31,7 +31,7 @@ export interface BattleOptions {
 }
 
 export interface BattleLogEntry {
-  type: 'attack' | 'area'
+  type: 'attack' | 'area' | 'thorns'
   time: number
   actor: string
   target: string
