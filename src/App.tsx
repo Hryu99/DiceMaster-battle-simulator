@@ -47,40 +47,10 @@ function App() {
     setSummary(runSimulations(teamA, teamB, rounds, { seed, logLimit: 100 }))
   }
 
-  const mirrorTeamA = () => {
-    setTeamB({
-      name: 'Команда B',
-      members: teamA.members.map((member, index) => ({
-        ...member,
-        id: `b-copy-${index + 1}`,
-        name: `${member.name} B`,
-        stats: { ...member.stats },
-      })),
-    })
-    setSummary(null)
-  }
-
-  const scaleTeamBHealthToPowerA = () => {
-    const ratio = powerA / Math.max(1, powerB)
-    const healthScale = Math.max(0.1, Math.min(10, ratio * ratio))
-
-    setTeamB((team) => ({
-      ...team,
-      members: team.members.map((member) => ({
-        ...member,
-        stats: {
-          ...member.stats,
-          health: Math.max(1, Math.round(member.stats.health * healthScale)),
-        },
-      })),
-    }))
-    setSummary(null)
-  }
-
   return (
     <main className="app-shell">
       <header className="hero-panel">
-        <div>
+        <div className="hero-copy">
           <p className="eyebrow">DiceMaster battle lab</p>
           <h1>Симулятор боя</h1>
           <p className="lead">
@@ -88,41 +58,27 @@ function App() {
             серией событийных симуляций.
           </p>
         </div>
-        <div className="score-card">
-          <span>Сила A</span>
-          <strong>{formatNumber(powerA)}</strong>
-          <span>Сила B</span>
-          <strong>{formatNumber(powerB)}</strong>
-          <small>Разница: {formatPercent((powerA - powerB) / Math.max(powerA, powerB, 1))}</small>
-        </div>
+        <section className="run-controls" aria-label="Параметры запуска симуляции">
+          <label>
+            Симуляций
+            <input
+              type="number"
+              min="1"
+              max="10000"
+              step="100"
+              value={rounds}
+              onChange={(event) => setRounds(Number(event.target.value))}
+            />
+          </label>
+          <label>
+            Seed
+            <input type="number" value={seed} onChange={(event) => setSeed(Number(event.target.value))} />
+          </label>
+          <button type="button" onClick={runBattleSeries}>
+            Запустить серию
+          </button>
+        </section>
       </header>
-
-      <section className="toolbar">
-        <label>
-          Симуляций
-          <input
-            type="number"
-            min="1"
-            max="10000"
-            step="100"
-            value={rounds}
-            onChange={(event) => setRounds(Number(event.target.value))}
-          />
-        </label>
-        <label>
-          Seed
-          <input type="number" value={seed} onChange={(event) => setSeed(Number(event.target.value))} />
-        </label>
-        <button type="button" onClick={runBattleSeries}>
-          Запустить серию
-        </button>
-        <button type="button" className="secondary" onClick={mirrorTeamA}>
-          Зеркалировать A в B
-        </button>
-        <button type="button" className="secondary" onClick={scaleTeamBHealthToPowerA}>
-          Подогнать здоровье B
-        </button>
-      </section>
 
       <section className="teams-grid">
         <TeamEditor
@@ -133,6 +89,7 @@ function App() {
         <TeamEditor
           side="B"
           team={teamB}
+          powerDiff={formatPercent((powerB - powerA) / Math.max(powerA, powerB, 1))}
           onUpdate={(updater) => updateTeam('B', updater)}
         />
       </section>
@@ -145,10 +102,11 @@ function App() {
 interface TeamEditorProps {
   side: 'A' | 'B'
   team: Team
+  powerDiff?: string
   onUpdate: (updater: (team: Team) => Team) => void
 }
 
-function TeamEditor({ side, team, onUpdate }: TeamEditorProps) {
+function TeamEditor({ side, team, powerDiff, onUpdate }: TeamEditorProps) {
   const teamPower = calculateTeamPower(team)
 
   const updateMember = (memberId: string, updater: (member: Combatant) => Combatant) => {
@@ -179,10 +137,14 @@ function TeamEditor({ side, team, onUpdate }: TeamEditorProps) {
     <article className="team-card">
       <div className="team-header">
         <div>
-          <p className="eyebrow">Команда {side}</p>
-          <h2>{team.name}</h2>
+          <h2>
+            {team.name} <span>({side})</span>
+          </h2>
         </div>
-        <strong>{formatNumber(teamPower)}</strong>
+        <div className="team-power">
+          <strong>Сила {formatNumber(teamPower)}</strong>
+          {powerDiff && <span>Разница {powerDiff}</span>}
+        </div>
       </div>
 
       <div className="combatants">
