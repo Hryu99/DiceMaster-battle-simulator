@@ -34,8 +34,8 @@ function App() {
   const [seed, setSeed] = useState(1)
   const [summary, setSummary] = useState<SimulationSummary | null>(null)
 
-  const powerA = useMemo(() => calculateTeamPower(teamA, teamB.members.length), [teamA, teamB.members.length])
-  const powerB = useMemo(() => calculateTeamPower(teamB, teamA.members.length), [teamB, teamA.members.length])
+  const powerA = useMemo(() => calculateTeamPower(teamA), [teamA])
+  const powerB = useMemo(() => calculateTeamPower(teamB), [teamB])
 
   const updateTeam = (side: 'A' | 'B', updater: (team: Team) => Team) => {
     const setter = side === 'A' ? setTeamA : setTeamB
@@ -44,7 +44,7 @@ function App() {
   }
 
   const runBattleSeries = () => {
-    setSummary(runSimulations(teamA, teamB, rounds, { seed, logLimit: 18 }))
+    setSummary(runSimulations(teamA, teamB, rounds, { seed, logLimit: 100 }))
   }
 
   const mirrorTeamA = () => {
@@ -128,13 +128,11 @@ function App() {
         <TeamEditor
           side="A"
           team={teamA}
-          enemyCount={teamB.members.length}
           onUpdate={(updater) => updateTeam('A', updater)}
         />
         <TeamEditor
           side="B"
           team={teamB}
-          enemyCount={teamA.members.length}
           onUpdate={(updater) => updateTeam('B', updater)}
         />
       </section>
@@ -147,12 +145,11 @@ function App() {
 interface TeamEditorProps {
   side: 'A' | 'B'
   team: Team
-  enemyCount: number
   onUpdate: (updater: (team: Team) => Team) => void
 }
 
-function TeamEditor({ side, team, enemyCount, onUpdate }: TeamEditorProps) {
-  const teamPower = calculateTeamPower(team, enemyCount)
+function TeamEditor({ side, team, onUpdate }: TeamEditorProps) {
+  const teamPower = calculateTeamPower(team)
 
   const updateMember = (memberId: string, updater: (member: Combatant) => Combatant) => {
     onUpdate((draft) => ({
@@ -193,7 +190,6 @@ function TeamEditor({ side, team, enemyCount, onUpdate }: TeamEditorProps) {
           <CombatantEditor
             key={member.id}
             member={member}
-            enemyCount={enemyCount}
             canRemove={team.members.length > 1}
             onRemove={() => removeMember(member.id)}
             onUpdate={(updater) => updateMember(member.id, updater)}
@@ -210,14 +206,13 @@ function TeamEditor({ side, team, enemyCount, onUpdate }: TeamEditorProps) {
 
 interface CombatantEditorProps {
   member: Combatant
-  enemyCount: number
   canRemove: boolean
   onRemove: () => void
   onUpdate: (updater: (member: Combatant) => Combatant) => void
 }
 
-function CombatantEditor({ member, enemyCount, canRemove, onRemove, onUpdate }: CombatantEditorProps) {
-  const breakdown = calculatePower(member.stats, enemyCount)
+function CombatantEditor({ member, canRemove, onRemove, onUpdate }: CombatantEditorProps) {
+  const breakdown = calculatePower(member.stats)
 
   const updateName = (event: ChangeEvent<HTMLInputElement>) => {
     onUpdate((draft) => ({ ...draft, name: event.target.value }))
@@ -233,7 +228,7 @@ function CombatantEditor({ member, enemyCount, canRemove, onRemove, onUpdate }: 
         <input className="name-input" value={member.name} onChange={updateName} aria-label="Имя бойца" />
         <div>
           <span>Сила</span>
-          <strong>{formatNumber(calculateCombatantPower(member, enemyCount))}</strong>
+          <strong>{formatNumber(calculateCombatantPower(member))}</strong>
         </div>
       </div>
 

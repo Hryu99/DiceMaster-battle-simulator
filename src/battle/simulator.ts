@@ -145,7 +145,6 @@ function performAttack(
   const rawDamage = actor.stats.attack * (isCrit ? actor.stats.critDamage : 1)
   const mainDamage = applyDamage(target, rawDamage)
   const mainTargetHealthAfter = target.health
-  let totalDamage = mainDamage
   const mainDefeated = target.health <= 0 ? [target.source.name] : []
   const areaLogEntries: BattleLogEntry[] = []
   const thornsSources = mainDamage > 0 ? [target] : []
@@ -156,7 +155,6 @@ function performAttack(
 
     for (const areaTarget of areaTargets) {
       const appliedAreaDamage = applyDamage(areaTarget, areaDamage)
-      totalDamage += appliedAreaDamage
 
       areaLogEntries.push({
         type: 'area',
@@ -173,7 +171,7 @@ function performAttack(
     }
   }
 
-  const lifesteal = Math.min(actor.stats.health - actor.health, totalDamage * actor.stats.lifesteal)
+  const lifesteal = Math.min(actor.stats.health - actor.health, mainDamage * actor.stats.lifesteal)
   actor.health += lifesteal
 
   pushLog(log, logLimit, {

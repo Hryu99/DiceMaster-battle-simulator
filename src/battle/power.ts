@@ -4,6 +4,7 @@ export const POWER_CONSTANTS = {
   armorScale: 100,
   lifestealEfficiency: 0.65,
   areaEfficiency: 0.55,
+  averageExtraTargets: 1.5,
   thornsEfficiency: 0.45,
 }
 
@@ -25,15 +26,14 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
   }
 }
 
-export function calculatePower(statsInput: CombatantStats, enemyCount = 1): PowerBreakdown {
+export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
   const stats = normalizeStats(statsInput)
   const effectiveHealth = stats.health * (1 + stats.armor / POWER_CONSTANTS.armorScale)
   const expectedHitDamage = stats.attack * (1 + stats.critChance * (stats.critDamage - 1))
   const dps = expectedHitDamage * stats.attackSpeed
-  const extraTargets = Math.max(0, enemyCount - 1)
-  const areaMultiplier = 1 + stats.areaAttack * extraTargets * POWER_CONSTANTS.areaEfficiency
+  const areaMultiplier = 1 + stats.areaAttack * POWER_CONSTANTS.averageExtraTargets * POWER_CONSTANTS.areaEfficiency
   const effectiveDps = dps * areaMultiplier
-  const sustain = effectiveDps * stats.lifesteal * POWER_CONSTANTS.lifestealEfficiency
+  const sustain = dps * stats.lifesteal * POWER_CONSTANTS.lifestealEfficiency
   const sustainMultiplier = 1 + sustain / Math.max(1, effectiveDps + effectiveHealth / 20)
   const thornsValue = stats.thorns * Math.sqrt(effectiveHealth) * POWER_CONSTANTS.thornsEfficiency
   const power = Math.sqrt(effectiveHealth * (effectiveDps + thornsValue)) * sustainMultiplier
@@ -49,10 +49,10 @@ export function calculatePower(statsInput: CombatantStats, enemyCount = 1): Powe
   }
 }
 
-export function calculateCombatantPower(combatant: Combatant, enemyCount = 1): number {
-  return calculatePower(combatant.stats, enemyCount).power
+export function calculateCombatantPower(combatant: Combatant): number {
+  return calculatePower(combatant.stats).power
 }
 
-export function calculateTeamPower(team: Team, enemyCount = 1): number {
-  return team.members.reduce((total, member) => total + calculateCombatantPower(member, enemyCount), 0)
+export function calculateTeamPower(team: Team): number {
+  return team.members.reduce((total, member) => total + calculateCombatantPower(member), 0)
 }

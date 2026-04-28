@@ -155,6 +155,32 @@ describe('battle simulator', () => {
     })
   })
 
+  it('does not heal from area attack damage', () => {
+    const result = simulateBattle(
+      team('A', [
+        createCombatant('hero', 'Hero', {
+          attack: 20,
+          health: 100,
+          armor: 0,
+          attackSpeed: 200,
+          critChance: 0,
+          lifesteal: 50,
+          areaAttack: 100,
+        }),
+      ]),
+      team('B', [
+        createCombatant('enemy-1', 'Enemy 1', { attack: 80, health: 100, armor: 0, attackSpeed: 300, critChance: 0 }),
+        createCombatant('enemy-2', 'Enemy 2', { attack: 1, health: 100, armor: 0, attackSpeed: 10, critChance: 0 }),
+      ]),
+      { seed: 17, logLimit: 6 },
+    )
+
+    const heroAttack = result.log.find((entry) => entry.actor === 'Hero' && entry.type === 'attack')
+
+    expect(heroAttack?.damage).toBe(20)
+    expect(heroAttack?.lifesteal).toBe(10)
+  })
+
   it('makes lifesteal, area attack, and thorns affect outcomes', () => {
     const plain = team('plain', [createCombatant('plain-1', 'Plain')])
     const sustain = team('sustain', [createCombatant('sustain-1', 'Sustain', { lifesteal: 30 })])

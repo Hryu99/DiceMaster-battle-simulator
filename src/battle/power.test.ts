@@ -26,16 +26,17 @@ describe('calculatePower', () => {
     ['areaAttack', { areaAttack: 50 }],
     ['thorns', { thorns: 15 }],
   ] as const)('does not reduce power when %s grows', (_name, overrides) => {
-    const basePower = calculatePower(baseStats, 4).power
-    const improvedPower = calculatePower({ ...baseStats, ...overrides }, 4).power
+    const basePower = calculatePower(baseStats).power
+    const improvedPower = calculatePower({ ...baseStats, ...overrides }).power
 
     expect(improvedPower).toBeGreaterThanOrEqual(basePower)
   })
 
-  it('values area attack only when there are extra targets', () => {
-    const singleTargetPower = calculatePower({ ...baseStats, areaAttack: 80 }, 1).power
-    const multiTargetPower = calculatePower({ ...baseStats, areaAttack: 80 }, 4).power
+  it('values area attack with an average expected number of extra targets', () => {
+    const basePower = calculatePower(baseStats).power
+    const areaPower = calculatePower({ ...baseStats, areaAttack: 80 }).power
 
-    expect(multiTargetPower).toBeGreaterThan(singleTargetPower)
+    expect(areaPower).toBeGreaterThan(basePower)
+    expect(calculatePower({ ...baseStats, areaAttack: 80 }).areaMultiplier).toBeCloseTo(1.66)
   })
 })
