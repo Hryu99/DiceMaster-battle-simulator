@@ -39,6 +39,25 @@
   line-height: 1.35;
 }
 
+.gdd-link {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 10px;
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: var(--text-h);
+  background: var(--accent-bg);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.gdd-link:hover {
+  filter: brightness(1.05);
+}
+
 .hero-copy {
   min-width: 0;
 }
@@ -237,6 +256,77 @@ button:disabled {
   font-weight: 700;
 }
 
+.gdd-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 18px;
+}
+
+.gdd-header,
+.gdd-document {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel-bg);
+  box-shadow: var(--shadow);
+}
+
+.gdd-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+  align-items: center;
+}
+
+.gdd-header .gdd-link {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+.gdd-document {
+  padding: 22px;
+}
+
+.gdd-document h1 {
+  margin-top: 0;
+}
+
+.gdd-document h2 {
+  margin-top: 28px;
+  margin-bottom: 10px;
+}
+
+.gdd-document h3 {
+  margin-top: 20px;
+  margin-bottom: 8px;
+  color: var(--text-h);
+}
+
+.gdd-document p,
+.gdd-document li {
+  line-height: 1.6;
+}
+
+.gdd-document ul,
+.gdd-document ol {
+  padding-left: 24px;
+}
+
+.gdd-document pre {
+  overflow-x: auto;
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--chip-bg);
+}
+
+.gdd-document code {
+  color: var(--text-h);
+  background: var(--chip-bg);
+}
+
 @media (max-width: 1024px) {
   .app-shell {
     padding: 12px;
@@ -255,6 +345,11 @@ button:disabled {
 
   .hero-panel {
     grid-template-columns: 1fr;
+  }
+
+  .gdd-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

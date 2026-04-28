@@ -1,9 +1,11 @@
-import { useMemo, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import ReactMarkdown from 'react-markdown'
 import './App.css'
 import { calculateCombatantPower, calculatePower, calculateTeamPower } from './battle/power'
 import { createCombatant, initialTeamA, initialTeamB } from './battle/presets'
 import { runSimulations } from './battle/simulator'
 import type { Combatant, CombatantStats, SimulationSummary, Team } from './battle/types'
+import gddMarkdown from '../docs/battle-simulator-gdd.md?raw'
 
 const statFields: Array<{
   key: keyof CombatantStats
@@ -29,11 +31,19 @@ const formatPercent = (value: number) => `${formatNumber(value * 100, 1)}%`
 const createMemberName = (teamName: string, memberNumber: number) => `${teamName}_${memberNumber}`
 
 function App() {
+  const [hash, setHash] = useState(() => window.location.hash)
   const [teamA, setTeamA] = useState<Team>(() => cloneTeam(initialTeamA))
   const [teamB, setTeamB] = useState<Team>(() => cloneTeam(initialTeamB))
   const [rounds, setRounds] = useState(1000)
   const [seed, setSeed] = useState(1)
   const [summary, setSummary] = useState<SimulationSummary | null>(null)
+
+  useEffect(() => {
+    const handleHashChange = () => setHash(window.location.hash)
+
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
 
   const powerA = useMemo(() => calculateTeamPower(teamA), [teamA])
   const powerB = useMemo(() => calculateTeamPower(teamB), [teamB])
@@ -48,6 +58,10 @@ function App() {
     setSummary(runSimulations(teamA, teamB, rounds, { seed, logLimit: 100 }))
   }
 
+  if (hash === '#/gdd') {
+    return <GddPage markdown={gddMarkdown} />
+  }
+
   return (
     <main className="app-shell">
       <header className="hero-panel">
@@ -58,6 +72,9 @@ function App() {
             Настраивай характеристики команд 1-4 на 1-4, сравнивай расчетную силу и проверяй ее
             серией событийных симуляций.
           </p>
+          <a className="gdd-link" href={`${import.meta.env.BASE_URL}#/gdd`} target="_blank" rel="noreferrer">
+            ГДД
+          </a>
         </div>
         <section className="run-controls" aria-label="Параметры запуска симуляции">
           <label>
@@ -263,6 +280,25 @@ function Metric({ label, value }: { label: string; value: string }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
+  )
+}
+
+function GddPage({ markdown }: { markdown: string }) {
+  return (
+    <main className="gdd-shell">
+      <header className="gdd-header">
+        <div>
+          <p className="eyebrow">DiceMaster battle lab</p>
+          <h1>ГДД симулятора боя</h1>
+        </div>
+        <a className="gdd-link" href={import.meta.env.BASE_URL}>
+          К симулятору
+        </a>
+      </header>
+      <article className="gdd-document">
+        <ReactMarkdown>{markdown}</ReactMarkdown>
+      </article>
+    </main>
   )
 }
 
