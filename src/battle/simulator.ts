@@ -1,4 +1,5 @@
-import { clamp, normalizeStats } from './power'
+import { BATTLE_CONFIG } from './config'
+import { normalizeStats } from './power'
 import { pickRandom, SeededRandom, type RandomSource } from './rng'
 import type {
   BattleLogEntry,
@@ -238,9 +239,14 @@ function applyThorns(
   }
 }
 
-function applyDamage(target: FighterState, rawDamage: number): number {
-  const damageMultiplier = 100 / (100 + target.stats.armor)
-  const damage = Math.max(0, rawDamage * clamp(damageMultiplier, 0.05, 1))
+function applyDamage(target: FighterState, incomingRawDamage: number): number {
+  if (incomingRawDamage <= 0) return 0
+
+  const rawDamage =
+    (incomingRawDamage * BATTLE_CONFIG.armorDamageConstant) /
+    (BATTLE_CONFIG.armorDamageConstant + target.stats.armor / incomingRawDamage)
+  const minDamage = incomingRawDamage * BATTLE_CONFIG.minDamageMultiplier
+  const damage = Math.max(minDamage, rawDamage)
   const applied = Math.min(target.health, damage)
   target.health -= applied
   return applied

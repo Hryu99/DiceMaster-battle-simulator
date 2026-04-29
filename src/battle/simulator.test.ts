@@ -54,6 +54,28 @@ describe('battle simulator', () => {
     expect(result.log[2].time).toBeCloseTo(1)
   })
 
+  it('reduces incoming damage with armor relative to hit size', () => {
+    const result = simulateBattle(
+      team('A', [createCombatant('hero', 'Hero', { attack: 25, health: 1000, attackSpeed: 100, critChance: 0 })]),
+      team('B', [createCombatant('target', 'Target', { attack: 1, health: 1000, armor: 10, attackSpeed: 10, critChance: 0 })]),
+      { seed: 7, logLimit: 1 },
+    )
+
+    expect(result.log[0].damage).toBeCloseTo(25 / (1 + 10 / 25))
+  })
+
+  it('does not reduce damage below the configured minimum multiplier', () => {
+    const result = simulateBattle(
+      team('A', [createCombatant('hero', 'Hero', { attack: 25, health: 1000, attackSpeed: 100, critChance: 0 })]),
+      team('B', [
+        createCombatant('target', 'Target', { attack: 1, health: 1000, armor: 10000, attackSpeed: 10, critChance: 0 }),
+      ]),
+      { seed: 7, logLimit: 1 },
+    )
+
+    expect(result.log[0].damage).toBeCloseTo(25 * 0.05)
+  })
+
   it('keeps attacking the same target until it dies', () => {
     const result = simulateBattle(
       team('A', [createCombatant('hero', 'Hero', { attack: 10, health: 1000, attackSpeed: 300, critChance: 0 })]),
@@ -150,9 +172,9 @@ describe('battle simulator', () => {
       actor: 'Thorny',
       target: 'Attacker',
       type: 'thorns',
-      damage: 5,
-      targetHealthAfter: 95,
     })
+    expect(result.log[1].damage).toBeCloseTo(10 / 11)
+    expect(result.log[1].targetHealthAfter).toBeCloseTo(100 - 10 / 11)
   })
 
   it('does not heal from area attack damage', () => {
