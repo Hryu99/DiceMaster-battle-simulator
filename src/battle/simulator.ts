@@ -143,19 +143,19 @@ function performAttack(
 
   const target = getAttackTarget(actor, enemies, rng)
   const isCrit = rng.next() < actor.stats.critChance
-  const rawDamage = actor.stats.attack * (isCrit ? actor.stats.critDamage : 1)
-  const mainDamage = applyDamage(target, rawDamage)
+  const baseDamage = calculateArmorReducedDamage(target, actor.stats.attack)
+  const mainDamage = applyFinalDamage(target, isCrit ? baseDamage * actor.stats.critDamage : baseDamage)
   const mainTargetHealthAfter = target.health
   const mainDefeated = target.health <= 0 ? [target.source.name] : []
   const areaLogEntries: BattleLogEntry[] = []
   const thornsSources = mainDamage > 0 ? [target] : []
 
   if (actor.stats.areaAttack > 0) {
-    const areaDamage = rawDamage * actor.stats.areaAttack
+    const areaDamage = actor.stats.attack * actor.stats.areaAttack
     const areaTargets = aliveFighters(fighters, actor.side === 'A' ? 'B' : 'A')
 
     for (const areaTarget of areaTargets) {
-      const appliedAreaDamage = applyDamage(areaTarget, areaDamage)
+      const appliedAreaDamage = applyArmorReducedDamage(areaTarget, areaDamage)
 
       areaLogEntries.push({
         type: 'area',
@@ -222,7 +222,7 @@ function applyThorns(
   for (const source of thornsSources) {
     if (actor.health <= 0 || source.stats.thorns <= 0) continue
 
-    const thornsDamage = applyDamage(actor, source.stats.thorns)
+    const thornsDamage = applyArmorReducedDamage(actor, source.stats.thorns)
 
     pushLog(log, logLimit, {
       type: 'thorns',
@@ -239,15 +239,22 @@ function applyThorns(
   }
 }
 
-function applyDamage(target: FighterState, incomingRawDamage: number): number {
+function applyArmorReducedDamage(target: FighterState, incomingRawDamage: number): number {
+  return applyFinalDamage(target, calculateArmorReducedDamage(target, incomingRawDamage))
+}
+
+function calculateArmorReducedDamage(target: FighterState, incomingRawDamage: number): number {
   if (incomingRawDamage <= 0) return 0
 
   const rawDamage =
     (incomingRawDamage * BATTLE_CONFIG.armorDamageConstant) /
     (BATTLE_CONFIG.armorDamageConstant + target.stats.armor / incomingRawDamage)
   const minDamage = incomingRawDamage * BATTLE_CONFIG.minDamageMultiplier
-  const damage = Math.max(minDamage, rawDamage)
-  const applied = Math.min(target.health, damage)
+  return Math.max(minDamage, rawDamage)
+}
+
+function applyFinalDamage(target: FighterState, damage: number): number {
+  const applied = Math.min(target.health, Math.max(0, damage))
   target.health -= applied
   return applied
 }

@@ -76,6 +76,27 @@ describe('battle simulator', () => {
     expect(result.log[0].damage).toBeCloseTo(25 * 0.05)
   })
 
+  it('applies critical damage after armor reduction', () => {
+    const result = simulateBattle(
+      team('A', [
+        createCombatant('hero', 'Hero', {
+          attack: 100,
+          health: 1000,
+          attackSpeed: 100,
+          critChance: 100,
+          critDamage: 200,
+        }),
+      ]),
+      team('B', [
+        createCombatant('target', 'Target', { attack: 1, health: 1000, armor: 25, attackSpeed: 10, critChance: 0 }),
+      ]),
+      { seed: 7, logLimit: 1 },
+    )
+
+    expect(result.log[0]).toMatchObject({ type: 'attack', isCrit: true })
+    expect(result.log[0].damage).toBeCloseTo(160)
+  })
+
   it('keeps attacking the same target until it dies', () => {
     const result = simulateBattle(
       team('A', [createCombatant('hero', 'Hero', { attack: 10, health: 1000, attackSpeed: 300, critChance: 0 })]),
