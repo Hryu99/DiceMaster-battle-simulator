@@ -1,4 +1,4 @@
-import { BATTLE_CONFIG } from './config'
+import { calculateArmorReducedDamage } from './damage'
 import { normalizeStats } from './power'
 import { pickRandom, SeededRandom, type RandomSource } from './rng'
 import type {
@@ -143,7 +143,7 @@ function performAttack(
 
   const target = getAttackTarget(actor, enemies, rng)
   const isCrit = rng.next() < actor.stats.critChance
-  const baseDamage = calculateArmorReducedDamage(target, actor.stats.attack)
+  const baseDamage = calculateArmorReducedDamage(actor.stats.attack, target.stats.armor)
   const mainDamage = applyFinalDamage(target, isCrit ? baseDamage * actor.stats.critDamage : baseDamage)
   const mainTargetHealthAfter = target.health
   const mainDefeated = target.health <= 0 ? [target.source.name] : []
@@ -240,17 +240,7 @@ function applyThorns(
 }
 
 function applyArmorReducedDamage(target: FighterState, incomingRawDamage: number): number {
-  return applyFinalDamage(target, calculateArmorReducedDamage(target, incomingRawDamage))
-}
-
-function calculateArmorReducedDamage(target: FighterState, incomingRawDamage: number): number {
-  if (incomingRawDamage <= 0) return 0
-
-  const rawDamage =
-    (incomingRawDamage * BATTLE_CONFIG.armorDamageConstant) /
-    (BATTLE_CONFIG.armorDamageConstant + target.stats.armor / incomingRawDamage)
-  const minDamage = incomingRawDamage * BATTLE_CONFIG.minDamageMultiplier
-  return Math.max(minDamage, rawDamage)
+  return applyFinalDamage(target, calculateArmorReducedDamage(incomingRawDamage, target.stats.armor))
 }
 
 function applyFinalDamage(target: FighterState, damage: number): number {

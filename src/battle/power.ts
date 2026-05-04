@@ -1,12 +1,6 @@
+import { BATTLE_CONFIG } from './config'
+import { calculateArmorReducedDamage } from './damage'
 import type { Combatant, CombatantStats, PowerBreakdown, Team } from './types'
-
-export const POWER_CONSTANTS = {
-  armorScale: 100,
-  lifestealEfficiency: 0.65,
-  areaEfficiency: 0.55,
-  averageExtraTargets: 1.5,
-  thornsEfficiency: 0.45,
-}
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
@@ -28,14 +22,22 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
 
 export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
   const stats = normalizeStats(statsInput)
-  const effectiveHealth = stats.health * (1 + stats.armor / POWER_CONSTANTS.armorScale)
-  const expectedHitDamage = stats.attack * (1 + stats.critChance * (stats.critDamage - 1))
+  const powerConfig = BATTLE_CONFIG.power
+  const incomingDamageAfterArmor = calculateArmorReducedDamage(powerConfig.averageIncomingHit, stats.armor)
+  const effectiveHealth =
+    stats.health * (powerConfig.averageIncomingHit / Math.max(incomingDamageAfterArmor, Number.EPSILON))
+  const baseHitAfterArmor = calculateArmorReducedDamage(stats.attack, powerConfig.averageEnemyArmor)
+  const expectedHitDamage = baseHitAfterArmor * (1 + stats.critChance * (stats.critDamage - 1))
   const dps = expectedHitDamage * stats.attackSpeed
-  const areaMultiplier = 1 + stats.areaAttack * POWER_CONSTANTS.averageExtraTargets * POWER_CONSTANTS.areaEfficiency
-  const effectiveDps = dps * areaMultiplier
-  const sustain = dps * stats.lifesteal * POWER_CONSTANTS.lifestealEfficiency
+  const areaHitAfterArmor = calculateArmorReducedDamage(stats.attack * stats.areaAttack, powerConfig.averageEnemyArmor)
+  const areaDps =
+    areaHitAfterArmor * powerConfig.averageExtraTargets * powerConfig.areaEfficiency * stats.attackSpeed
+  const effectiveDps = dps + areaDps
+  const areaMultiplier = dps > 0 ? effectiveDps / dps : 1
+  const sustain = dps * stats.lifesteal * powerConfig.lifestealEfficiency
   const sustainMultiplier = 1 + sustain / Math.max(1, effectiveDps + effectiveHealth / 20)
-  const thornsValue = stats.thorns * Math.sqrt(effectiveHealth) * POWER_CONSTANTS.thornsEfficiency
+  const thornsAfterArmor = calculateArmorReducedDamage(stats.thorns, powerConfig.averageEnemyArmor)
+  const thornsValue = thornsAfterArmor * powerConfig.averageIncomingAttackSpeed * powerConfig.thornsEfficiency
   const power = Math.sqrt(effectiveHealth * (effectiveDps + thornsValue)) * sustainMultiplier
 
   return {
