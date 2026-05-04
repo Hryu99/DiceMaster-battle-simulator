@@ -34,7 +34,7 @@ function App() {
   const [hash, setHash] = useState(() => window.location.hash)
   const [teamA, setTeamA] = useState<Team>(() => cloneTeam(initialTeamA))
   const [teamB, setTeamB] = useState<Team>(() => cloneTeam(initialTeamB))
-  const [rounds, setRounds] = useState(1000)
+  const [rounds, setRounds] = useState(100)
   const [seed, setSeed] = useState(1)
   const [summary, setSummary] = useState<SimulationSummary | null>(null)
 
@@ -66,8 +66,9 @@ function App() {
     <main className="app-shell">
       <header className="hero-panel">
         <div className="hero-copy">
-          <p className="eyebrow">DiceMaster battle lab</p>
-          <h1>Симулятор боя</h1>
+          <h1>
+            Dice Master симулятор боя <span className="app-version">v{__APP_VERSION__}</span>
+          </h1>
           <p className="lead">
             Настраивай характеристики команд 1-4 на 1-4, сравнивай расчетную силу и проверяй ее
             серией событийных симуляций.
@@ -288,7 +289,6 @@ function GddPage({ markdown }: { markdown: string }) {
     <main className="gdd-shell">
       <header className="gdd-header">
         <div>
-          <p className="eyebrow">DiceMaster battle lab</p>
           <h1>ГДД симулятора боя</h1>
         </div>
         <a className="gdd-link" href={import.meta.env.BASE_URL}>

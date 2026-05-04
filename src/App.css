@@ -24,19 +24,18 @@
   align-items: center;
 }
 
-.eyebrow {
-  margin: 0 0 2px;
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .lead {
   max-width: 720px;
   font-size: 14px;
   line-height: 1.35;
+}
+
+.app-version {
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .gdd-link {
