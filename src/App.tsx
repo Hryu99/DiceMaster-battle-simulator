@@ -194,14 +194,29 @@ interface CombatantEditorProps {
 }
 
 function CombatantEditor({ member, canRemove, onRemove, onUpdate }: CombatantEditorProps) {
+  const [statDrafts, setStatDrafts] = useState<Partial<Record<keyof CombatantStats, string>>>({})
   const breakdown = calculatePower(member.stats)
 
   const updateName = (event: ChangeEvent<HTMLInputElement>) => {
     onUpdate((draft) => ({ ...draft, name: event.target.value }))
   }
 
-  const updateStat = (key: keyof CombatantStats, value: number) => {
+  const updateStat = (key: keyof CombatantStats, rawValue: string) => {
+    setStatDrafts((drafts) => ({ ...drafts, [key]: rawValue }))
+    if (rawValue === '') return
+
+    const value = Number(rawValue)
+    if (!Number.isFinite(value)) return
+
     onUpdate((draft) => ({ ...draft, stats: { ...draft.stats, [key]: value } }))
+  }
+
+  const commitStat = (key: keyof CombatantStats) => {
+    setStatDrafts((drafts) => {
+      const rest = { ...drafts }
+      delete rest[key]
+      return rest
+    })
   }
 
   return (
@@ -223,8 +238,9 @@ function CombatantEditor({ member, canRemove, onRemove, onUpdate }: CombatantEdi
               min={field.min}
               max={field.max}
               step={field.step}
-              value={member.stats[field.key]}
-              onChange={(event) => updateStat(field.key, Number(event.target.value))}
+              value={statDrafts[field.key] ?? member.stats[field.key]}
+              onChange={(event) => updateStat(field.key, event.target.value)}
+              onBlur={() => commitStat(field.key)}
             />
           </label>
         ))}
