@@ -16,7 +16,7 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
     critDamage: Math.max(1, stats.critDamage / 100),
     lifesteal: clamp(stats.lifesteal / 100, 0, 1),
     areaAttack: clamp(stats.areaAttack / 100, 0, 1),
-    thorns: Math.max(0, stats.thorns),
+    thorns: Math.max(0, stats.thorns / 100),
   }
 }
 
@@ -36,7 +36,8 @@ export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
   const areaMultiplier = dps > 0 ? effectiveDps / dps : 1
   const sustain = dps * stats.lifesteal * powerConfig.lifestealEfficiency
   const sustainMultiplier = 1 + sustain / Math.max(1, effectiveDps + effectiveHealth / 20)
-  const thornsAfterArmor = calculateArmorReducedDamage(stats.thorns, powerConfig.averageEnemyArmor)
+  const thornsRawDamage = stats.armor * stats.thorns
+  const thornsAfterArmor = calculateArmorReducedDamage(thornsRawDamage, powerConfig.averageEnemyArmor)
   const thornsValue = thornsAfterArmor * powerConfig.averageIncomingAttackSpeed * powerConfig.thornsEfficiency
   const power = Math.sqrt(effectiveHealth * (effectiveDps + thornsValue)) * sustainMultiplier
 

@@ -220,9 +220,10 @@ function applyThorns(
   time: number,
 ): void {
   for (const source of thornsSources) {
-    if (actor.health <= 0 || source.stats.thorns <= 0) continue
+    const thornsRawDamage = source.stats.armor * source.stats.thorns
+    if (actor.health <= 0 || thornsRawDamage <= 0) continue
 
-    const thornsDamage = applyArmorReducedDamage(actor, source.stats.thorns)
+    const thornsDamage = applyArmorReducedDamage(actor, thornsRawDamage)
 
     pushLog(log, logLimit, {
       type: 'thorns',

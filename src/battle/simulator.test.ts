@@ -152,8 +152,8 @@ describe('battle simulator', () => {
         }),
       ]),
       team('B', [
-        createCombatant('thorny', 'Thorny', { attack: 1, health: 100, armor: 0, attackSpeed: 10, critChance: 0, thorns: 10 }),
-        createCombatant('other', 'Other', { attack: 1, health: 100, armor: 0, attackSpeed: 10, critChance: 0, thorns: 10 }),
+        createCombatant('thorny', 'Thorny', { attack: 1, health: 100, armor: 100, attackSpeed: 10, critChance: 0, thorns: 10 }),
+        createCombatant('other', 'Other', { attack: 1, health: 100, armor: 100, attackSpeed: 10, critChance: 0, thorns: 10 }),
       ]),
       { seed: 17, logLimit: 5 },
     )
@@ -179,7 +179,7 @@ describe('battle simulator', () => {
         createCombatant('thorny', 'Thorny', {
           attack: 1,
           health: 100,
-          armor: 0,
+          armor: 200,
           attackSpeed: 10,
           critChance: 0,
           thorns: 10,
@@ -188,14 +188,14 @@ describe('battle simulator', () => {
       { seed: 21, logLimit: 2 },
     )
 
-    expect(result.log[0]).toMatchObject({ actor: 'Attacker', target: 'Thorny', type: 'attack', damage: 1 })
+    expect(result.log[0]).toMatchObject({ actor: 'Attacker', target: 'Thorny', type: 'attack', damage: 0.05 })
     expect(result.log[1]).toMatchObject({
       actor: 'Thorny',
       target: 'Attacker',
       type: 'thorns',
     })
-    expect(result.log[1].damage).toBeCloseTo(10 / 11)
-    expect(result.log[1].targetHealthAfter).toBeCloseTo(100 - 10 / 11)
+    expect(result.log[1].damage).toBeCloseTo(20 / 6)
+    expect(result.log[1].targetHealthAfter).toBeCloseTo(100 - 20 / 6)
   })
 
   it('does not heal from area attack damage', () => {
@@ -231,7 +231,7 @@ describe('battle simulator', () => {
     ])
     const sustain = team('sustain', [createCombatant('sustain-1', 'Sustain', { lifesteal: 30 })])
     const aoe = team('aoe', [createCombatant('aoe-1', 'Aoe', { attack: 35, health: 180, armor: 10, areaAttack: 70 })])
-    const thorns = team('thorns', [createCombatant('thorns-1', 'Thorns', { thorns: 25 })])
+    const thorns = team('thorns', [createCombatant('thorns-1', 'Thorns', { armor: 200, thorns: 25 })])
     const swarm = team('swarm', [
       createCombatant('swarm-1', 'Swarm 1', { attack: 18, health: 210, armor: 0 }),
       createCombatant('swarm-2', 'Swarm 2', { attack: 18, health: 210, armor: 0 }),

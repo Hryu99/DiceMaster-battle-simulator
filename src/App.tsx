@@ -22,7 +22,7 @@ const statFields: Array<{
   { key: 'critDamage', label: 'Урон крита, %', step: 5, min: 100 },
   { key: 'lifesteal', label: 'Lifesteal, %', step: 1, min: 0, max: 100 },
   { key: 'areaAttack', label: 'Массовая атака, %', step: 1, min: 0, max: 100 },
-  { key: 'thorns', label: 'Шипы', step: 1, min: 0 },
+  { key: 'thorns', label: 'Шипы, %', step: 1, min: 0, max: 100 },
 ]
 
 const cloneTeam = (team: Team): Team => JSON.parse(JSON.stringify(team)) as Team

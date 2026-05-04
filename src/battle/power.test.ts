@@ -97,4 +97,15 @@ describe('calculatePower', () => {
       baseStats.health * (BATTLE_CONFIG.power.averageIncomingHit / incomingDamageAfterArmor),
     )
   })
+
+  it('values thorns as a percentage of armor', () => {
+    const breakdown = calculatePower({ ...baseStats, armor: 200, thorns: 10 })
+    const expectedThornsRawDamage = 200 * 0.1
+
+    expect(breakdown.thornsValue).toBeCloseTo(
+      calculateArmorReducedDamage(expectedThornsRawDamage, BATTLE_CONFIG.power.averageEnemyArmor) *
+        BATTLE_CONFIG.power.averageIncomingAttackSpeed *
+        BATTLE_CONFIG.power.thornsEfficiency,
+    )
+  })
 })
