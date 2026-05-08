@@ -86,6 +86,51 @@ describe('calculatePower', () => {
     expect(withArea.sustain).toBeCloseTo(withoutArea.sustain)
   })
 
+  it('rewards larger main hits relative to the reference incoming hit', () => {
+    const heavyHit = calculatePower({
+      ...baseStats,
+      attack: 100,
+      attackSpeed: 100,
+      health: 100,
+      armor: 10,
+      critChance: 0,
+    })
+    const smallHit = calculatePower({
+      ...baseStats,
+      attack: 20,
+      attackSpeed: 100,
+      health: 100,
+      armor: 10,
+      critChance: 0,
+    })
+
+    expect(heavyHit.hitImpactMultiplier).toBeGreaterThan(1)
+    expect(smallHit.hitImpactMultiplier).toBeLessThan(1)
+  })
+
+  it('limits hit impact multiplier to configured bounds', () => {
+    const hugeHit = calculatePower({
+      ...baseStats,
+      attack: 10000,
+      health: 1,
+      armor: 0,
+      attackSpeed: 100,
+      critChance: 100,
+      critDamage: 1000,
+    })
+    const tinyHit = calculatePower({
+      ...baseStats,
+      attack: 1,
+      health: 1000,
+      armor: 100,
+      attackSpeed: 100,
+      critChance: 0,
+    })
+
+    expect(hugeHit.hitImpactMultiplier).toBe(BATTLE_CONFIG.power.maxHitImpactMultiplier)
+    expect(tinyHit.hitImpactMultiplier).toBe(BATTLE_CONFIG.power.minHitImpactMultiplier)
+  })
+
   it('calculates effective health through the shared armor damage model', () => {
     const breakdown = calculatePower(baseStats)
     const referenceIncomingHit =

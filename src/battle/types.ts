@@ -71,6 +71,7 @@ export interface PowerBreakdown {
   dps: number
   sustain: number
   areaMultiplier: number
+  hitImpactMultiplier: number
   thornsValue: number
   power: number
 }

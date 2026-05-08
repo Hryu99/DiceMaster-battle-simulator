@@ -318,7 +318,7 @@ effectiveHealth = health * referenceIncomingHit / incomingDamageAfterArmor
 
 Обычная атака считается в том же порядке, что и симуляция: сначала броня цели, потом средний эффект критов.
 
-Для расчета силы используется усредненная цель с броней 10:
+Для расчета силы используется усредненная цель. Текущее значение средней брони цели задается в конфиге `averageEnemyArmor`.
 
 ```text
 baseHitAfterArmor = damageAfterArmor(attack, averageEnemyArmor)
@@ -327,11 +327,11 @@ expectedHitDamage = baseHitAfterArmor * (1 + critChance * (critDamage - 1))
 
 Здесь `critChance` и `critDamage` уже переведены из процентов во внутренние коэффициенты.
 
-Пример: атака 100, средняя броня цели 10, шанс крита 30%, урон крита 200%.
+Пример: атака 100, средняя броня цели 15, шанс крита 30%, урон крита 200%.
 
 ```text
-baseHitAfterArmor = damageAfterArmor(100, 10) = 90.9
-expectedHitDamage = 90.9 * (1 + 0.3 * (2 - 1)) = 118.2
+baseHitAfterArmor = damageAfterArmor(100, 15) = 87.0
+expectedHitDamage = 87.0 * (1 + 0.3 * (2 - 1)) = 113.0
 ```
 
 ### Основной DPS
@@ -343,6 +343,43 @@ mainDps = expectedHitDamage * attackSpeed
 ```
 
 Скорость атаки 100% равна `1.0`, 200% равна `2.0`.
+
+### Размер обычного удара в силе
+
+В симуляции два персонажа с одинаковым DPS, но разным размером удара, могут вести себя по-разному.
+
+Крупный удар обычно ценнее мелкого, потому что:
+
+- лучше пробивает нелинейную броню;
+- быстрее добивает цель;
+- может сократить число ответных атак противника;
+- сильнее давит на sustain-билды.
+
+Поэтому основной DPS дополнительно умножается на `hitImpactMultiplier`.
+
+Сначала считается отношение ожидаемого обычного удара к расчетному входящему удару:
+
+```text
+hitImpactRatio = expectedHitDamage / referenceIncomingHit
+```
+
+Затем считается множитель:
+
+```text
+hitImpactMultiplier = 1 + (hitImpactRatio - 1) * 0.25
+```
+
+Множитель ограничен диапазоном:
+
+```text
+0.85 <= hitImpactMultiplier <= 1.35
+```
+
+Если обычный удар крупнее ожидаемого масштаба, основной DPS получает бонус. Если удар мелкий, основной DPS получает штраф.
+
+```text
+weightedMainDps = mainDps * hitImpactMultiplier
+```
 
 ### Массовая атака в силе
 
@@ -361,7 +398,7 @@ mainDps = expectedHitDamage * attackSpeed
 ```text
 areaHitAfterArmor = damageAfterArmor(attack * areaAttack, averageEnemyArmor)
 areaDps = areaHitAfterArmor * averageExtraTargets * 0.55 * attackSpeed
-effectiveDps = mainDps + areaDps
+effectiveDps = weightedMainDps + areaDps
 ```
 
 ### Lifesteal в силе
@@ -369,7 +406,7 @@ effectiveDps = mainDps + areaDps
 Lifesteal добавляет ценность через sustain, но считается только от обычной атаки.
 
 ```text
-sustain = mainDps * lifesteal * 1.5
+sustain = mainDps * lifesteal * 0.5
 ```
 
 Затем sustain повышает итоговую силу через множитель. Массовая атака в sustain не входит, потому что в бою она не лечит.
@@ -381,7 +418,7 @@ sustain = mainDps * lifesteal * 1.5
 ```text
 thornsRawDamage = armor * thorns
 thornsAfterArmor = damageAfterArmor(thornsRawDamage, averageEnemyArmor)
-thornsValue = thornsAfterArmor * averageIncomingAttackSpeed * 1.0
+thornsValue = thornsAfterArmor * averageIncomingAttackSpeed * 1.3
 ```
 
 В этой оценке шипы считаются процентом от брони владельца, затем уменьшаются броней усредненного атакующего. Они не срабатывают от массовых атак.

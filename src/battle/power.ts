@@ -30,11 +30,13 @@ export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
   const baseHitAfterArmor = calculateArmorReducedDamage(stats.attack, powerConfig.averageEnemyArmor)
   const expectedHitDamage = baseHitAfterArmor * (1 + stats.critChance * (stats.critDamage - 1))
   const dps = expectedHitDamage * stats.attackSpeed
+  const hitImpactMultiplier = calculateHitImpactMultiplier(expectedHitDamage, referenceIncomingHit)
+  const weightedDps = dps * hitImpactMultiplier
   const areaHitAfterArmor = calculateArmorReducedDamage(stats.attack * stats.areaAttack, powerConfig.averageEnemyArmor)
   const areaDps =
     areaHitAfterArmor * powerConfig.averageExtraTargets * powerConfig.areaEfficiency * stats.attackSpeed
-  const effectiveDps = dps + areaDps
-  const areaMultiplier = dps > 0 ? effectiveDps / dps : 1
+  const effectiveDps = weightedDps + areaDps
+  const areaMultiplier = dps > 0 ? (dps + areaDps) / dps : 1
   const sustain = dps * stats.lifesteal * powerConfig.lifestealEfficiency
   const sustainMultiplier = 1 + sustain / Math.max(1, effectiveDps + effectiveHealth / 20)
   const thornsRawDamage = stats.armor * stats.thorns
@@ -48,9 +50,18 @@ export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
     dps,
     sustain,
     areaMultiplier,
+    hitImpactMultiplier,
     thornsValue,
     power,
   }
+}
+
+function calculateHitImpactMultiplier(expectedHitDamage: number, referenceIncomingHit: number): number {
+  const powerConfig = BATTLE_CONFIG.power
+  const hitImpactRatio = expectedHitDamage / Math.max(referenceIncomingHit, Number.EPSILON)
+  const multiplier = 1 + powerConfig.hitImpactEfficiency * (hitImpactRatio - 1)
+
+  return clamp(multiplier, powerConfig.minHitImpactMultiplier, powerConfig.maxHitImpactMultiplier)
 }
 
 function calculateReferenceIncomingHit(stats: CombatantStats): number {
