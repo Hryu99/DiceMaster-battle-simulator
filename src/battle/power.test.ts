@@ -88,13 +88,14 @@ describe('calculatePower', () => {
 
   it('calculates effective health through the shared armor damage model', () => {
     const breakdown = calculatePower(baseStats)
-    const incomingDamageAfterArmor = calculateArmorReducedDamage(
-      BATTLE_CONFIG.power.averageIncomingHit,
-      baseStats.armor,
-    )
+    const referenceIncomingHit =
+      baseStats.attack * BATTLE_CONFIG.power.referenceAttackWeight +
+      (baseStats.health / BATTLE_CONFIG.power.referenceTargetTtk) * BATTLE_CONFIG.power.referenceHealthWeight +
+      (baseStats.armor / BATTLE_CONFIG.power.expectedArmorToAttackRatio) * BATTLE_CONFIG.power.referenceArmorWeight
+    const incomingDamageAfterArmor = calculateArmorReducedDamage(referenceIncomingHit, baseStats.armor)
 
     expect(breakdown.effectiveHealth).toBeCloseTo(
-      baseStats.health * (BATTLE_CONFIG.power.averageIncomingHit / incomingDamageAfterArmor),
+      baseStats.health * (referenceIncomingHit / incomingDamageAfterArmor),
     )
   })
 

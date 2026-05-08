@@ -23,9 +23,10 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
 export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
   const stats = normalizeStats(statsInput)
   const powerConfig = BATTLE_CONFIG.power
-  const incomingDamageAfterArmor = calculateArmorReducedDamage(powerConfig.averageIncomingHit, stats.armor)
+  const referenceIncomingHit = calculateReferenceIncomingHit(stats)
+  const incomingDamageAfterArmor = calculateArmorReducedDamage(referenceIncomingHit, stats.armor)
   const effectiveHealth =
-    stats.health * (powerConfig.averageIncomingHit / Math.max(incomingDamageAfterArmor, Number.EPSILON))
+    stats.health * (referenceIncomingHit / Math.max(incomingDamageAfterArmor, Number.EPSILON))
   const baseHitAfterArmor = calculateArmorReducedDamage(stats.attack, powerConfig.averageEnemyArmor)
   const expectedHitDamage = baseHitAfterArmor * (1 + stats.critChance * (stats.critDamage - 1))
   const dps = expectedHitDamage * stats.attackSpeed
@@ -50,6 +51,20 @@ export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
     thornsValue,
     power,
   }
+}
+
+function calculateReferenceIncomingHit(stats: CombatantStats): number {
+  const powerConfig = BATTLE_CONFIG.power
+  const attackScale = stats.attack
+  const healthScale = stats.health / powerConfig.referenceTargetTtk
+  const armorScale = stats.armor / powerConfig.expectedArmorToAttackRatio
+
+  return Math.max(
+    Number.EPSILON,
+    attackScale * powerConfig.referenceAttackWeight +
+      healthScale * powerConfig.referenceHealthWeight +
+      armorScale * powerConfig.referenceArmorWeight,
+  )
 }
 
 export function calculateCombatantPower(combatant: Combatant): number {
