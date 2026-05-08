@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import './App.css'
 import { calculateCombatantPower, calculatePower, calculateTeamPower } from './battle/power'
+import {
+  DEFAULT_POWER_LAB_CONFIG,
+  runPowerLab,
+  type PowerLabBuildResult,
+  type PowerLabReport,
+} from './battle/powerLab'
 import { createCombatant, initialTeamA, initialTeamB } from './battle/presets'
 import { runSimulations } from './battle/simulator'
 import type { Combatant, CombatantStats, SimulationSummary, Team } from './battle/types'
@@ -62,6 +68,10 @@ function App() {
     return <GddPage markdown={gddMarkdown} />
   }
 
+  if (hash === '#/power-lab') {
+    return <PowerLabPage />
+  }
+
   return (
     <main className="app-shell">
       <header className="hero-panel">
@@ -75,6 +85,9 @@ function App() {
           </p>
           <a className="gdd-link" href={`${import.meta.env.BASE_URL}#/gdd`} target="_blank" rel="noreferrer">
             ГДД
+          </a>
+          <a className="gdd-link" href={`${import.meta.env.BASE_URL}#/power-lab`} target="_blank" rel="noreferrer">
+            Power Lab
           </a>
         </div>
         <section className="run-controls" aria-label="Параметры запуска симуляции">
@@ -300,6 +313,150 @@ function Metric({ label, value }: { label: string; value: string }) {
   )
 }
 
+function PowerLabPage() {
+  const [targetPower, setTargetPower] = useState(DEFAULT_POWER_LAB_CONFIG.targetPower)
+  const [tolerancePercent, setTolerancePercent] = useState(DEFAULT_POWER_LAB_CONFIG.tolerancePercent)
+  const [candidateCount, setCandidateCount] = useState(DEFAULT_POWER_LAB_CONFIG.candidateCount)
+  const [selectedBuildCount, setSelectedBuildCount] = useState(DEFAULT_POWER_LAB_CONFIG.selectedBuildCount)
+  const [roundsPerPair, setRoundsPerPair] = useState(DEFAULT_POWER_LAB_CONFIG.roundsPerPair)
+  const [seed, setSeed] = useState(DEFAULT_POWER_LAB_CONFIG.seed)
+  const [report, setReport] = useState<PowerLabReport | null>(null)
+
+  const runReport = () => {
+    setReport(
+      runPowerLab({
+        targetPower,
+        tolerancePercent,
+        candidateCount,
+        selectedBuildCount,
+        roundsPerPair,
+        seed,
+      }),
+    )
+  }
+
+  return (
+    <main className="gdd-shell power-lab-shell">
+      <header className="gdd-header">
+        <div>
+          <h1>Power Lab</h1>
+          <p className="lead">
+            Генерирует случайные 1v1 билды около заданной силы, прогоняет их друг против друга и показывает,
+            какие архетипы выигрывают чаще ожидаемых 50%.
+          </p>
+        </div>
+        <a className="gdd-link" href={import.meta.env.BASE_URL}>
+          К симулятору
+        </a>
+      </header>
+
+      <section className="results-panel">
+        <div className="power-lab-controls">
+          <label>
+            Целевая сила
+            <input type="number" min="1" step="10" value={targetPower} onChange={(event) => setTargetPower(Number(event.target.value))} />
+          </label>
+          <label>
+            Допуск, %
+            <input type="number" min="1" max="50" step="1" value={tolerancePercent} onChange={(event) => setTolerancePercent(Number(event.target.value))} />
+          </label>
+          <label>
+            Кандидатов
+            <input type="number" min="100" step="100" value={candidateCount} onChange={(event) => setCandidateCount(Number(event.target.value))} />
+          </label>
+          <label>
+            Билдов
+            <input type="number" min="2" max="100" step="1" value={selectedBuildCount} onChange={(event) => setSelectedBuildCount(Number(event.target.value))} />
+          </label>
+          <label>
+            Боев на пару
+            <input type="number" min="1" step="10" value={roundsPerPair} onChange={(event) => setRoundsPerPair(Number(event.target.value))} />
+          </label>
+          <label>
+            Seed
+            <input type="number" value={seed} onChange={(event) => setSeed(Number(event.target.value))} />
+          </label>
+        </div>
+
+        <button type="button" onClick={runReport}>
+          Запустить power lab
+        </button>
+      </section>
+
+      {report && <PowerLabReportPanel report={report} />}
+    </main>
+  )
+}
+
+function PowerLabReportPanel({ report }: { report: PowerLabReport }) {
+  return (
+    <section className="results-panel">
+      <div className="results-grid">
+        <Metric label="Кандидатов" value={String(report.candidatesGenerated)} />
+        <Metric label="Отобрано билдов" value={String(report.builds.length)} />
+        <Metric label="Боев всего" value={String(report.builds.reduce((total, build) => total + build.battles, 0) / 2)} />
+      </div>
+
+      <h2>Архетипы</h2>
+      <div className="power-lab-table-wrap">
+        <table className="power-lab-table">
+          <thead>
+            <tr>
+              <th>Тег</th>
+              <th>Билдов</th>
+              <th>Средний win rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {report.tagSummaries.map((summary) => (
+              <tr key={summary.tag}>
+                <td>{summary.tag}</td>
+                <td>{summary.buildCount}</td>
+                <td>{formatPercent(summary.averageWinRate)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Сильнее формулы</h2>
+      <PowerLabBuildTable builds={report.topWinners} />
+
+      <h2>Слабее формулы</h2>
+      <PowerLabBuildTable builds={report.topLosers} />
+    </section>
+  )
+}
+
+function PowerLabBuildTable({ builds }: { builds: PowerLabBuildResult[] }) {
+  return (
+    <div className="power-lab-table-wrap">
+      <table className="power-lab-table">
+        <thead>
+          <tr>
+            <th>Билд</th>
+            <th>Сила</th>
+            <th>Win rate</th>
+            <th>Теги</th>
+            <th>Статы</th>
+          </tr>
+        </thead>
+        <tbody>
+          {builds.map((build) => (
+            <tr key={build.combatant.id}>
+              <td>{build.combatant.name}</td>
+              <td>{formatNumber(build.power)}</td>
+              <td>{formatPercent(build.winRate)}</td>
+              <td>{build.tags.join(', ')}</td>
+              <td>{formatStats(build.combatant.stats)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function GddPage({ markdown }: { markdown: string }) {
   return (
     <main className="gdd-shell">
@@ -322,6 +479,10 @@ function formatLogAction(type: SimulationSummary['sampleBattle']['log'][number][
   if (type === 'area') return 'массово атакует'
   if (type === 'thorns') return 'бьет шипами'
   return 'атакует'
+}
+
+function formatStats(stats: CombatantStats): string {
+  return `A ${stats.attack}, HP ${stats.health}, Arm ${stats.armor}, Spd ${stats.attackSpeed}%, Crit ${stats.critChance}/${stats.critDamage}%, LS ${stats.lifesteal}%, Th ${stats.thorns}%`
 }
 
 export default App

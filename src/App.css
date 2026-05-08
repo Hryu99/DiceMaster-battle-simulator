@@ -57,6 +57,10 @@
   filter: brightness(1.05);
 }
 
+.hero-copy .gdd-link + .gdd-link {
+  margin-left: 8px;
+}
+
 .hero-copy {
   min-width: 0;
 }
@@ -326,6 +330,43 @@ button:disabled {
   background: var(--chip-bg);
 }
 
+.power-lab-shell {
+  max-width: 1180px;
+}
+
+.power-lab-controls {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.power-lab-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.power-lab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.power-lab-table th,
+.power-lab-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.power-lab-table th {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 @media (max-width: 1024px) {
   .app-shell {
     padding: 12px;
@@ -349,6 +390,10 @@ button:disabled {
   .gdd-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .power-lab-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
