@@ -1,5 +1,5 @@
 export const BATTLE_CONFIG = {
-  armorDamageConstant: 1,
+  armorDamageConstant: 3,
   minDamageMultiplier: 0.05,
   power: {
     averageEnemyArmor: 20,

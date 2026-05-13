@@ -88,6 +88,32 @@ describe('power lab', () => {
     expect(report.topWinners.length).toBeLessThanOrEqual(4)
     expect(report.topLosers.length).toBeLessThanOrEqual(4)
   })
+
+  it('scales absolute stat ranges with target power', () => {
+    const report = runPowerLab(testConfig({
+      candidateCount: 1,
+      selectedBuildCount: 1,
+      roundsPerPair: 1,
+      targetPower: 1000,
+      tolerancePercent: 100,
+    }))
+    const scale = 1000 / DEFAULT_POWER_LAB_CONFIG.targetPower
+
+    expect(report.config.statRanges.attack.min).toBe(
+      Math.round((DEFAULT_POWER_LAB_CONFIG.statRanges.attack.min * scale) / DEFAULT_POWER_LAB_CONFIG.statRanges.attack.step!) *
+        DEFAULT_POWER_LAB_CONFIG.statRanges.attack.step!,
+    )
+    expect(report.config.statRanges.health.min).toBe(
+      Math.round((DEFAULT_POWER_LAB_CONFIG.statRanges.health.min * scale) / DEFAULT_POWER_LAB_CONFIG.statRanges.health.step!) *
+        DEFAULT_POWER_LAB_CONFIG.statRanges.health.step!,
+    )
+    expect(report.config.statRanges.armor.min).toBe(
+      Math.round((DEFAULT_POWER_LAB_CONFIG.statRanges.armor.min * scale) / DEFAULT_POWER_LAB_CONFIG.statRanges.armor.step!) *
+        DEFAULT_POWER_LAB_CONFIG.statRanges.armor.step!,
+    )
+    expect(report.config.statRanges.attackSpeed).toEqual(DEFAULT_POWER_LAB_CONFIG.statRanges.attackSpeed)
+    expect(report.config.statRanges.critChance).toEqual(DEFAULT_POWER_LAB_CONFIG.statRanges.critChance)
+  })
 })
 
 function testConfig(overrides: Partial<PowerLabConfig> = {}): PowerLabConfig {

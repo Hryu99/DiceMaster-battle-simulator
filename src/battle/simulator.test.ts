@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { calculateArmorReducedDamage } from './damage'
 import { createCombatant } from './presets'
 import { runSimulations, simulateBattle } from './simulator'
 import type { Team } from './types'
@@ -61,7 +62,7 @@ describe('battle simulator', () => {
       { seed: 7, logLimit: 1 },
     )
 
-    expect(result.log[0].damage).toBeCloseTo(25 / (1 + 10 / 25))
+    expect(result.log[0].damage).toBeCloseTo(calculateArmorReducedDamage(25, 10))
   })
 
   it('does not reduce damage below the configured minimum multiplier', () => {
@@ -94,7 +95,7 @@ describe('battle simulator', () => {
     )
 
     expect(result.log[0]).toMatchObject({ type: 'attack', isCrit: true })
-    expect(result.log[0].damage).toBeCloseTo(160)
+    expect(result.log[0].damage).toBeCloseTo(calculateArmorReducedDamage(100, 25) * 2)
   })
 
   it('keeps attacking the same target until it dies', () => {
@@ -194,8 +195,8 @@ describe('battle simulator', () => {
       target: 'Attacker',
       type: 'thorns',
     })
-    expect(result.log[1].damage).toBeCloseTo(20 / 6)
-    expect(result.log[1].targetHealthAfter).toBeCloseTo(100 - 20 / 6)
+    expect(result.log[1].damage).toBeCloseTo(calculateArmorReducedDamage(20, 100))
+    expect(result.log[1].targetHealthAfter).toBeCloseTo(100 - calculateArmorReducedDamage(20, 100))
   })
 
   it('does not heal from area attack damage', () => {

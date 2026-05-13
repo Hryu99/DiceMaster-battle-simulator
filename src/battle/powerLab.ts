@@ -59,6 +59,9 @@ export interface PowerLabReport {
   topLosers: PowerLabBuildResult[]
 }
 
+const BASE_POWER_FOR_RANGES = 150
+const SCALABLE_STAT_KEYS: Array<keyof CombatantStats> = ['attack', 'health', 'armor']
+
 export const DEFAULT_POWER_LAB_CONFIG: PowerLabConfig = {
   targetPower: 150,
   tolerancePercent: 5,
@@ -189,7 +192,7 @@ export function summarizeTags(builds: PowerLabBuildResult[]): PowerLabTagSummary
 }
 
 function mergeConfig(overrides: Partial<PowerLabConfig>): PowerLabConfig {
-  return {
+  const config = {
     ...DEFAULT_POWER_LAB_CONFIG,
     ...overrides,
     statRanges: {
@@ -197,6 +200,36 @@ function mergeConfig(overrides: Partial<PowerLabConfig>): PowerLabConfig {
       ...overrides.statRanges,
     },
   }
+
+  return {
+    ...config,
+    statRanges: scaleStatRanges(config),
+  }
+}
+
+function scaleStatRanges(config: PowerLabConfig): PowerLabConfig['statRanges'] {
+  const scale = Math.max(Number.EPSILON, config.targetPower / BASE_POWER_FOR_RANGES)
+  const scaledRanges = { ...config.statRanges }
+
+  for (const key of SCALABLE_STAT_KEYS) {
+    scaledRanges[key] = scaleRange(config.statRanges[key], scale)
+  }
+
+  return scaledRanges
+}
+
+function scaleRange(range: StatRange, scale: number): StatRange {
+  const step = range.step ?? 1
+
+  return {
+    ...range,
+    min: roundToStep(range.min * scale, step),
+    max: roundToStep(range.max * scale, step),
+  }
+}
+
+function roundToStep(value: number, step: number): number {
+  return Math.max(step, Math.round(value / step) * step)
 }
 
 function generateStats(ranges: PowerLabConfig['statRanges'], rng: RandomSource): CombatantStats {
