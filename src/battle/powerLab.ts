@@ -101,6 +101,7 @@ export function runPowerLab(overrides: Partial<PowerLabConfig> = {}): PowerLabRe
 export function generateRandomBuilds(config: PowerLabConfig): PowerLabBuild[] {
   const rng = new SeededRandom(config.seed)
   const tagScale = getStatScale(config)
+  const powerOptions = { enemyArmorScale: tagScale }
 
   return Array.from({ length: config.candidateCount }, (_, index) => {
     const stats = generateStats(config.statRanges, rng)
@@ -108,7 +109,7 @@ export function generateRandomBuilds(config: PowerLabConfig): PowerLabBuild[] {
 
     return {
       combatant,
-      power: calculatePower(stats).power,
+      power: calculatePower(stats, powerOptions).power,
       tags: tagBuild(stats, tagScale),
     }
   })

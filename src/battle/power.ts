@@ -2,6 +2,10 @@ import { BATTLE_CONFIG } from './config'
 import { calculateArmorReducedDamage } from './damage'
 import type { Combatant, CombatantStats, PowerBreakdown, Team } from './types'
 
+export interface PowerCalculationOptions {
+  enemyArmorScale?: number
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
@@ -20,11 +24,11 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
   }
 }
 
-export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
+export function calculatePower(statsInput: CombatantStats, options: PowerCalculationOptions = {}): PowerBreakdown {
   const stats = normalizeStats(statsInput)
   const powerConfig = BATTLE_CONFIG.power
   const referenceIncomingHit = calculateReferenceIncomingHit(stats)
-  const referenceEnemyArmor = referenceIncomingHit * powerConfig.expectedArmorToAttackRatio
+  const referenceEnemyArmor = calculateReferenceEnemyArmor(options.enemyArmorScale)
   const incomingDamageAfterArmor = calculateArmorReducedDamage(referenceIncomingHit, stats.armor)
   const effectiveHealth =
     stats.health * (referenceIncomingHit / Math.max(incomingDamageAfterArmor, Number.EPSILON))
@@ -55,6 +59,11 @@ export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
     thornsValue,
     power,
   }
+}
+
+function calculateReferenceEnemyArmor(enemyArmorScale = 1): number {
+  const powerConfig = BATTLE_CONFIG.power
+  return powerConfig.averageEnemyArmor * Math.max(Number.EPSILON, enemyArmorScale)
 }
 
 function calculateHitImpactMultiplier(expectedHitDamage: number, referenceIncomingHit: number): number {

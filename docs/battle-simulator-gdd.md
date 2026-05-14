@@ -318,26 +318,26 @@ effectiveHealth = health * referenceIncomingHit / incomingDamageAfterArmor
 
 Обычная атака считается в том же порядке, что и симуляция: сначала броня цели, потом средний эффект критов.
 
-Для расчета силы используется условная броня равного по масштабу противника:
+Для расчета силы используется условная средняя броня врага:
 
 ```text
-referenceEnemyArmor = referenceIncomingHit * 0.6
+averageEnemyArmor = 20
 ```
 
-Так броня цели растет вместе с тиром персонажа, а не остается фиксированной константой.
+В обычном расчете силы это фиксированное значение. В Power Lab оно масштабируется единым множителем от целевой силы эксперимента, чтобы все билды одного тира считались против одинаковой условной брони врага.
 
 ```text
-baseHitAfterArmor = damageAfterArmor(attack, referenceEnemyArmor)
+baseHitAfterArmor = damageAfterArmor(attack, averageEnemyArmor)
 expectedHitDamage = baseHitAfterArmor * (1 + critChance * (critDamage - 1))
 ```
 
 Здесь `critChance` и `critDamage` уже переведены из процентов во внутренние коэффициенты.
 
-Пример: атака 100, `referenceIncomingHit` 80, значит `referenceEnemyArmor` 48. Шанс крита 30%, урон крита 200%.
+Пример: атака 100, средняя броня цели 20. Шанс крита 30%, урон крита 200%.
 
 ```text
-baseHitAfterArmor = damageAfterArmor(100, 48) = 86.2
-expectedHitDamage = 86.2 * (1 + 0.3 * (2 - 1)) = 112.1
+baseHitAfterArmor = damageAfterArmor(100, 20) = 93.8
+expectedHitDamage = 93.8 * (1 + 0.3 * (2 - 1)) = 121.9
 ```
 
 ### Основной DPS
@@ -399,10 +399,10 @@ weightedMainDps = mainDps * hitImpactMultiplier
 (0 + 1 + 2 + 3) / 4 = 1.5
 ```
 
-Массовая атака также проходит через `referenceEnemyArmor`. Используется коэффициент эффективности 0.55, чтобы массовая атака не переоценивалась в формуле силы.
+Массовая атака также проходит через среднюю броню условного врага. Используется коэффициент эффективности 0.55, чтобы массовая атака не переоценивалась в формуле силы.
 
 ```text
-areaHitAfterArmor = damageAfterArmor(attack * areaAttack, referenceEnemyArmor)
+areaHitAfterArmor = damageAfterArmor(attack * areaAttack, averageEnemyArmor)
 areaDps = areaHitAfterArmor * averageExtraTargets * 0.55 * attackSpeed
 effectiveDps = weightedMainDps + areaDps
 ```
@@ -423,11 +423,11 @@ sustain = mainDps * lifesteal * 0.5
 
 ```text
 thornsRawDamage = armor * thorns
-thornsAfterArmor = damageAfterArmor(thornsRawDamage, referenceEnemyArmor)
+thornsAfterArmor = damageAfterArmor(thornsRawDamage, averageEnemyArmor)
 thornsValue = thornsAfterArmor * averageIncomingAttackSpeed * 1.3
 ```
 
-В этой оценке шипы считаются процентом от брони владельца, затем уменьшаются `referenceEnemyArmor` условного атакующего. Они не срабатывают от массовых атак.
+В этой оценке шипы считаются процентом от брони владельца, затем уменьшаются средней броней условного атакующего. Они не срабатывают от массовых атак.
 
 ### Итоговая сила
 
@@ -481,6 +481,21 @@ statScale = 1000 / 150 = 6.67
 ```
 
 Это значит, что диапазоны атаки, здоровья и брони станут примерно в 6.67 раза выше базовых.
+
+Тем же множителем масштабируется средняя броня условного врага в формуле силы:
+
+```text
+enemyArmorScale = targetPower / 150
+scaledAverageEnemyArmor = averageEnemyArmor * enemyArmorScale
+```
+
+Например, если `averageEnemyArmor = 20`, то при целевой силе 500 Power Lab считает урон всех билдов против средней брони:
+
+```text
+20 * 500 / 150 = 66.7
+```
+
+Это значение одинаково для всех билдов внутри одного запуска Power Lab. Оно зависит от тира эксперимента, а не от характеристик конкретного билда.
 
 Процентные характеристики не масштабируются:
 
