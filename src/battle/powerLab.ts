@@ -57,9 +57,19 @@ export interface PowerLabReport {
   config: PowerLabConfig
   candidatesGenerated: number
   builds: PowerLabBuildResult[]
+  overallSummary: PowerLabOverallSummary
   tagSummaries: PowerLabTagSummary[]
   topWinners: PowerLabBuildResult[]
   topLosers: PowerLabBuildResult[]
+}
+
+export interface PowerLabOverallSummary {
+  buildCount: number
+  averagePower: number
+  averageWinRate: number
+  diagnostics: PowerLabDiagnostics
+  armorToReferenceEnemyArmorRatio: number
+  attackToReferenceEnemyArmorRatio: number
 }
 
 export interface PowerLabDiagnostics {
@@ -75,6 +85,8 @@ export interface PowerLabDiagnostics {
   hitToReferenceRatio: number
   referenceIncomingHit: number
   referenceEnemyArmor: number
+  effectiveHealthToDpsRatio: number
+  dpsToEffectiveHealthRatio: number
   thornsValue: number
 }
 
@@ -111,6 +123,7 @@ export function runPowerLab(overrides: Partial<PowerLabConfig> = {}): PowerLabRe
     config,
     candidatesGenerated: candidates.length,
     builds,
+    overallSummary: summarizeOverall(builds),
     tagSummaries: summarizeTags(builds),
     topWinners: [...builds].sort(byWinRateDesc).slice(0, 10),
     topLosers: [...builds].sort(byWinRateAsc).slice(0, 10),
@@ -220,6 +233,35 @@ export function summarizeTags(builds: PowerLabBuildResult[]): PowerLabTagSummary
     .sort((left, right) => right.averageWinRate - left.averageWinRate)
 }
 
+export function summarizeOverall(builds: PowerLabBuildResult[]): PowerLabOverallSummary {
+  const diagnostics = createEmptyDiagnostics()
+  let totalPower = 0
+  let totalWinRate = 0
+
+  for (const build of builds) {
+    addDiagnostics(diagnostics, build.diagnostics)
+    totalPower += build.power
+    totalWinRate += build.winRate
+  }
+
+  const averagedDiagnostics = divideDiagnostics(diagnostics, builds.length)
+
+  return {
+    buildCount: builds.length,
+    averagePower: builds.length > 0 ? totalPower / builds.length : 0,
+    averageWinRate: builds.length > 0 ? totalWinRate / builds.length : 0,
+    diagnostics: averagedDiagnostics,
+    armorToReferenceEnemyArmorRatio:
+      averagedDiagnostics.referenceEnemyArmor > 0
+        ? averagedDiagnostics.armor / averagedDiagnostics.referenceEnemyArmor
+        : 0,
+    attackToReferenceEnemyArmorRatio:
+      averagedDiagnostics.referenceEnemyArmor > 0
+        ? averagedDiagnostics.attack / averagedDiagnostics.referenceEnemyArmor
+        : 0,
+  }
+}
+
 export function createPowerLabDiagnostics(
   stats: CombatantStats,
   breakdown: PowerBreakdown,
@@ -241,6 +283,8 @@ export function createPowerLabDiagnostics(
     hitToReferenceRatio: breakdown.expectedHitDamage / Math.max(referenceIncomingHit, Number.EPSILON),
     referenceIncomingHit,
     referenceEnemyArmor,
+    effectiveHealthToDpsRatio: breakdown.effectiveHealth / Math.max(breakdown.dps, Number.EPSILON),
+    dpsToEffectiveHealthRatio: breakdown.dps / Math.max(breakdown.effectiveHealth, Number.EPSILON),
     thornsValue: breakdown.thornsValue,
   }
 }
@@ -289,6 +333,8 @@ function createEmptyDiagnostics(): PowerLabDiagnostics {
     hitToReferenceRatio: 0,
     referenceIncomingHit: 0,
     referenceEnemyArmor: 0,
+    effectiveHealthToDpsRatio: 0,
+    dpsToEffectiveHealthRatio: 0,
     thornsValue: 0,
   }
 }
@@ -306,6 +352,8 @@ function addDiagnostics(target: PowerLabDiagnostics, source: PowerLabDiagnostics
   target.hitToReferenceRatio += source.hitToReferenceRatio
   target.referenceIncomingHit += source.referenceIncomingHit
   target.referenceEnemyArmor += source.referenceEnemyArmor
+  target.effectiveHealthToDpsRatio += source.effectiveHealthToDpsRatio
+  target.dpsToEffectiveHealthRatio += source.dpsToEffectiveHealthRatio
   target.thornsValue += source.thornsValue
 }
 
@@ -325,6 +373,8 @@ function divideDiagnostics(diagnostics: PowerLabDiagnostics, divisor: number): P
     hitToReferenceRatio: diagnostics.hitToReferenceRatio / safeDivisor,
     referenceIncomingHit: diagnostics.referenceIncomingHit / safeDivisor,
     referenceEnemyArmor: diagnostics.referenceEnemyArmor / safeDivisor,
+    effectiveHealthToDpsRatio: diagnostics.effectiveHealthToDpsRatio / safeDivisor,
+    dpsToEffectiveHealthRatio: diagnostics.dpsToEffectiveHealthRatio / safeDivisor,
     thornsValue: diagnostics.thornsValue / safeDivisor,
   }
 }

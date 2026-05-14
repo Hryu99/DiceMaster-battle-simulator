@@ -395,6 +395,47 @@ function PowerLabReportPanel({ report }: { report: PowerLabReport }) {
         <Metric label="Кандидатов" value={String(report.candidatesGenerated)} />
         <Metric label="Отобрано билдов" value={String(report.builds.length)} />
         <Metric label="Боев всего" value={String(report.builds.reduce((total, build) => total + build.battles, 0) / 2)} />
+        <Metric label="Avg power" value={formatNumber(report.overallSummary.averagePower, 1)} />
+        <Metric label="Avg armor / ref armor" value={formatNumber(report.overallSummary.armorToReferenceEnemyArmorRatio, 2)} />
+        <Metric label="Avg attack / ref armor" value={formatNumber(report.overallSummary.attackToReferenceEnemyArmorRatio, 2)} />
+      </div>
+
+      <h2>Baseline выборки</h2>
+      <div className="power-lab-table-wrap">
+        <table className="power-lab-table">
+          <thead>
+            <tr>
+              <th>Avg A</th>
+              <th>Avg HP</th>
+              <th>Avg Arm</th>
+              <th>Ref Arm</th>
+              <th>Arm/Ref Arm</th>
+              <th>A/Ref Arm</th>
+              <th>Hit/Ref</th>
+              <th>Hit x</th>
+              <th>EHP</th>
+              <th>DPS</th>
+              <th>EHP/DPS</th>
+              <th>DPS/EHP</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{formatNumber(report.overallSummary.diagnostics.attack, 1)}</td>
+              <td>{formatNumber(report.overallSummary.diagnostics.health, 1)}</td>
+              <td>{formatNumber(report.overallSummary.diagnostics.armor, 1)}</td>
+              <td>{formatNumber(report.overallSummary.diagnostics.referenceEnemyArmor, 1)}</td>
+              <td>{formatNumber(report.overallSummary.armorToReferenceEnemyArmorRatio, 2)}</td>
+              <td>{formatNumber(report.overallSummary.attackToReferenceEnemyArmorRatio, 2)}</td>
+              <td>{formatNumber(report.overallSummary.diagnostics.hitToReferenceRatio, 2)}</td>
+              <td>{formatNumber(report.overallSummary.diagnostics.hitImpactMultiplier, 2)}</td>
+              <td>{formatNumber(report.overallSummary.diagnostics.effectiveHealth, 1)}</td>
+              <td>{formatNumber(report.overallSummary.diagnostics.dps, 1)}</td>
+              <td>{formatNumber(report.overallSummary.diagnostics.effectiveHealthToDpsRatio, 2)}</td>
+              <td>{formatNumber(report.overallSummary.diagnostics.dpsToEffectiveHealthRatio, 3)}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <h2>Архетипы</h2>
@@ -412,6 +453,8 @@ function PowerLabReportPanel({ report }: { report: PowerLabReport }) {
               <th>Hit x</th>
               <th>EHP</th>
               <th>DPS</th>
+              <th>EHP/DPS</th>
+              <th>DPS/EHP</th>
             </tr>
           </thead>
           <tbody>
@@ -427,6 +470,8 @@ function PowerLabReportPanel({ report }: { report: PowerLabReport }) {
                 <td>{formatNumber(summary.diagnostics.hitImpactMultiplier, 2)}</td>
                 <td>{formatNumber(summary.diagnostics.effectiveHealth, 1)}</td>
                 <td>{formatNumber(summary.diagnostics.dps, 1)}</td>
+                <td>{formatNumber(summary.diagnostics.effectiveHealthToDpsRatio, 2)}</td>
+                <td>{formatNumber(summary.diagnostics.dpsToEffectiveHealthRatio, 3)}</td>
               </tr>
             ))}
           </tbody>
@@ -456,6 +501,8 @@ function PowerLabBuildTable({ builds }: { builds: PowerLabBuildResult[] }) {
             <th>Hit x</th>
             <th>EHP</th>
             <th>DPS</th>
+            <th>EHP/DPS</th>
+            <th>DPS/EHP</th>
             <th>Статы</th>
           </tr>
         </thead>
@@ -470,6 +517,8 @@ function PowerLabBuildTable({ builds }: { builds: PowerLabBuildResult[] }) {
               <td>{formatNumber(build.diagnostics.hitImpactMultiplier, 2)}</td>
               <td>{formatNumber(build.diagnostics.effectiveHealth, 1)}</td>
               <td>{formatNumber(build.diagnostics.dps, 1)}</td>
+              <td>{formatNumber(build.diagnostics.effectiveHealthToDpsRatio, 2)}</td>
+              <td>{formatNumber(build.diagnostics.dpsToEffectiveHealthRatio, 3)}</td>
               <td>{formatStats(build.combatant.stats)}</td>
             </tr>
           ))}

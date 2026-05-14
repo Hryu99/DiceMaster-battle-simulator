@@ -42,6 +42,8 @@ describe('power lab', () => {
     expect(build.diagnostics.attack).toBe(build.combatant.stats.attack)
     expect(build.diagnostics.hitToReferenceRatio).toBeGreaterThan(0)
     expect(build.diagnostics.referenceEnemyArmor).toBeGreaterThan(0)
+    expect(build.diagnostics.effectiveHealthToDpsRatio).toBeGreaterThan(0)
+    expect(build.diagnostics.dpsToEffectiveHealthRatio).toBeGreaterThan(0)
   })
 
   it('selects builds closest to target power within tolerance', () => {
@@ -115,6 +117,10 @@ describe('power lab', () => {
     expect(report.topWinners.length).toBeLessThanOrEqual(4)
     expect(report.topLosers.length).toBeLessThanOrEqual(4)
     expect(report.tagSummaries[0]?.diagnostics.hitToReferenceRatio).toBeGreaterThan(0)
+    expect(report.overallSummary.buildCount).toBe(report.builds.length)
+    expect(report.overallSummary.diagnostics.armor).toBeGreaterThan(0)
+    expect(report.overallSummary.armorToReferenceEnemyArmorRatio).toBeGreaterThan(0)
+    expect(report.overallSummary.diagnostics.effectiveHealthToDpsRatio).toBeGreaterThan(0)
   })
 
   it('scales absolute stat ranges with target power', () => {
