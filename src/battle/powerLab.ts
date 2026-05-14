@@ -100,6 +100,7 @@ export function runPowerLab(overrides: Partial<PowerLabConfig> = {}): PowerLabRe
 
 export function generateRandomBuilds(config: PowerLabConfig): PowerLabBuild[] {
   const rng = new SeededRandom(config.seed)
+  const tagScale = getStatScale(config)
 
   return Array.from({ length: config.candidateCount }, (_, index) => {
     const stats = generateStats(config.statRanges, rng)
@@ -108,7 +109,7 @@ export function generateRandomBuilds(config: PowerLabConfig): PowerLabBuild[] {
     return {
       combatant,
       power: calculatePower(stats).power,
-      tags: tagBuild(stats),
+      tags: tagBuild(stats, tagScale),
     }
   })
 }
@@ -155,17 +156,17 @@ export function runOneVsOneMatrix(builds: PowerLabBuild[], config: PowerLabConfi
   }))
 }
 
-export function tagBuild(statsInput: CombatantStats): BuildTag[] {
+export function tagBuild(statsInput: CombatantStats, scale = 1): BuildTag[] {
   const stats = { ...statsInput, areaAttack: 0 }
   const tags: BuildTag[] = []
 
-  if (stats.attack >= 60) tags.push('attack-heavy')
+  if (stats.attack >= 60 * scale) tags.push('attack-heavy')
   if (stats.attackSpeed >= 180) tags.push('speed-heavy')
   if (stats.critChance >= 35 || stats.critChance * Math.max(0, stats.critDamage - 100) >= 5000) tags.push('crit-heavy')
-  if (stats.health >= 300) tags.push('tank-health')
-  if (stats.armor >= 55) tags.push('tank-armor')
+  if (stats.health >= 300 * scale) tags.push('tank-health')
+  if (stats.armor >= 55 * scale) tags.push('tank-armor')
   if (stats.lifesteal >= 25) tags.push('sustain')
-  if (stats.thorns >= 25 && stats.armor >= 35) tags.push('thorns')
+  if (stats.thorns >= 25 && stats.armor >= 35 * scale) tags.push('thorns')
 
   return tags.length > 0 ? tags : ['balanced']
 }
@@ -208,7 +209,7 @@ function mergeConfig(overrides: Partial<PowerLabConfig>): PowerLabConfig {
 }
 
 function scaleStatRanges(config: PowerLabConfig): PowerLabConfig['statRanges'] {
-  const scale = Math.max(Number.EPSILON, config.targetPower / BASE_POWER_FOR_RANGES)
+  const scale = getStatScale(config)
   const scaledRanges = { ...config.statRanges }
 
   for (const key of SCALABLE_STAT_KEYS) {
@@ -216,6 +217,10 @@ function scaleStatRanges(config: PowerLabConfig): PowerLabConfig['statRanges'] {
   }
 
   return scaledRanges
+}
+
+function getStatScale(config: Pick<PowerLabConfig, 'targetPower'>): number {
+  return Math.max(Number.EPSILON, config.targetPower / BASE_POWER_FOR_RANGES)
 }
 
 function scaleRange(range: StatRange, scale: number): StatRange {

@@ -24,15 +24,16 @@ export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
   const stats = normalizeStats(statsInput)
   const powerConfig = BATTLE_CONFIG.power
   const referenceIncomingHit = calculateReferenceIncomingHit(stats)
+  const referenceEnemyArmor = referenceIncomingHit * powerConfig.expectedArmorToAttackRatio
   const incomingDamageAfterArmor = calculateArmorReducedDamage(referenceIncomingHit, stats.armor)
   const effectiveHealth =
     stats.health * (referenceIncomingHit / Math.max(incomingDamageAfterArmor, Number.EPSILON))
-  const baseHitAfterArmor = calculateArmorReducedDamage(stats.attack, powerConfig.averageEnemyArmor)
+  const baseHitAfterArmor = calculateArmorReducedDamage(stats.attack, referenceEnemyArmor)
   const expectedHitDamage = baseHitAfterArmor * (1 + stats.critChance * (stats.critDamage - 1))
   const dps = expectedHitDamage * stats.attackSpeed
   const hitImpactMultiplier = calculateHitImpactMultiplier(expectedHitDamage, referenceIncomingHit)
   const weightedDps = dps * hitImpactMultiplier
-  const areaHitAfterArmor = calculateArmorReducedDamage(stats.attack * stats.areaAttack, powerConfig.averageEnemyArmor)
+  const areaHitAfterArmor = calculateArmorReducedDamage(stats.attack * stats.areaAttack, referenceEnemyArmor)
   const areaDps =
     areaHitAfterArmor * powerConfig.averageExtraTargets * powerConfig.areaEfficiency * stats.attackSpeed
   const effectiveDps = weightedDps + areaDps
@@ -40,7 +41,7 @@ export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
   const sustain = dps * stats.lifesteal * powerConfig.lifestealEfficiency
   const sustainMultiplier = 1 + sustain / Math.max(1, effectiveDps + effectiveHealth / 20)
   const thornsRawDamage = stats.armor * stats.thorns
-  const thornsAfterArmor = calculateArmorReducedDamage(thornsRawDamage, powerConfig.averageEnemyArmor)
+  const thornsAfterArmor = calculateArmorReducedDamage(thornsRawDamage, referenceEnemyArmor)
   const thornsValue = thornsAfterArmor * powerConfig.averageIncomingAttackSpeed * powerConfig.thornsEfficiency
   const power = Math.sqrt(effectiveHealth * (effectiveDps + thornsValue)) * sustainMultiplier
 

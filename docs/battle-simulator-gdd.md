@@ -294,9 +294,9 @@ Seed позволяет получать повторяемые результа
 
 ```text
 referenceIncomingHit =
-  attack * 0.55
+  attack * 0.65
   + (health / 8) * 0.30
-  + (armor / 0.6) * 0.15
+  + (armor / 0.6) * 0.05
 ```
 
 Смысл частей:
@@ -318,20 +318,26 @@ effectiveHealth = health * referenceIncomingHit / incomingDamageAfterArmor
 
 Обычная атака считается в том же порядке, что и симуляция: сначала броня цели, потом средний эффект критов.
 
-Для расчета силы используется усредненная цель. Текущее значение средней брони цели задается в конфиге `averageEnemyArmor`.
+Для расчета силы используется условная броня равного по масштабу противника:
 
 ```text
-baseHitAfterArmor = damageAfterArmor(attack, averageEnemyArmor)
+referenceEnemyArmor = referenceIncomingHit * 0.6
+```
+
+Так броня цели растет вместе с тиром персонажа, а не остается фиксированной константой.
+
+```text
+baseHitAfterArmor = damageAfterArmor(attack, referenceEnemyArmor)
 expectedHitDamage = baseHitAfterArmor * (1 + critChance * (critDamage - 1))
 ```
 
 Здесь `critChance` и `critDamage` уже переведены из процентов во внутренние коэффициенты.
 
-Пример: атака 100, средняя броня цели 15, шанс крита 30%, урон крита 200%.
+Пример: атака 100, `referenceIncomingHit` 80, значит `referenceEnemyArmor` 48. Шанс крита 30%, урон крита 200%.
 
 ```text
-baseHitAfterArmor = damageAfterArmor(100, 15) = 87.0
-expectedHitDamage = 87.0 * (1 + 0.3 * (2 - 1)) = 113.0
+baseHitAfterArmor = damageAfterArmor(100, 48) = 86.2
+expectedHitDamage = 86.2 * (1 + 0.3 * (2 - 1)) = 112.1
 ```
 
 ### Основной DPS
@@ -366,13 +372,13 @@ hitImpactRatio = expectedHitDamage / referenceIncomingHit
 Затем считается множитель:
 
 ```text
-hitImpactMultiplier = 1 + (hitImpactRatio - 1) * 0.25
+hitImpactMultiplier = 1 + (hitImpactRatio - 1) * 0.45
 ```
 
 Множитель ограничен диапазоном:
 
 ```text
-0.85 <= hitImpactMultiplier <= 1.35
+0.85 <= hitImpactMultiplier <= 1.6
 ```
 
 Если обычный удар крупнее ожидаемого масштаба, основной DPS получает бонус. Если удар мелкий, основной DPS получает штраф.
@@ -393,10 +399,10 @@ weightedMainDps = mainDps * hitImpactMultiplier
 (0 + 1 + 2 + 3) / 4 = 1.5
 ```
 
-Массовая атака также проходит через броню усредненной цели. Используется коэффициент эффективности 0.55, чтобы массовая атака не переоценивалась в формуле силы.
+Массовая атака также проходит через `referenceEnemyArmor`. Используется коэффициент эффективности 0.55, чтобы массовая атака не переоценивалась в формуле силы.
 
 ```text
-areaHitAfterArmor = damageAfterArmor(attack * areaAttack, averageEnemyArmor)
+areaHitAfterArmor = damageAfterArmor(attack * areaAttack, referenceEnemyArmor)
 areaDps = areaHitAfterArmor * averageExtraTargets * 0.55 * attackSpeed
 effectiveDps = weightedMainDps + areaDps
 ```
@@ -417,11 +423,11 @@ sustain = mainDps * lifesteal * 0.5
 
 ```text
 thornsRawDamage = armor * thorns
-thornsAfterArmor = damageAfterArmor(thornsRawDamage, averageEnemyArmor)
+thornsAfterArmor = damageAfterArmor(thornsRawDamage, referenceEnemyArmor)
 thornsValue = thornsAfterArmor * averageIncomingAttackSpeed * 1.3
 ```
 
-В этой оценке шипы считаются процентом от брони владельца, затем уменьшаются броней усредненного атакующего. Они не срабатывают от массовых атак.
+В этой оценке шипы считаются процентом от брони владельца, затем уменьшаются `referenceEnemyArmor` условного атакующего. Они не срабатывают от массовых атак.
 
 ### Итоговая сила
 
@@ -501,6 +507,22 @@ Power Lab автоматически назначает билдам теги:
 - `balanced` - нет явного перекоса.
 
 Один билд может получить несколько тегов.
+
+Пороги тегов, завязанных на абсолютные характеристики, масштабируются так же, как генерация:
+
+- `attack-heavy`;
+- `tank-health`;
+- `tank-armor`;
+- броня в условии для `thorns`.
+
+Например, атака 70 считается высокой около силы 150, но не считается высокой около силы 1000, потому что на более высоком тире ожидаемый диапазон атаки тоже выше.
+
+Пороги процентных тегов не масштабируются:
+
+- `speed-heavy`;
+- `crit-heavy`;
+- `sustain`;
+- процент шипов в условии для `thorns`.
 
 ### Как читать результаты
 

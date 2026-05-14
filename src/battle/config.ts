@@ -2,7 +2,6 @@ export const BATTLE_CONFIG = {
   armorDamageConstant: 3,
   minDamageMultiplier: 0.05,
   power: {
-    averageEnemyArmor: 20,
     averageExtraTargets: 1.5,
     averageIncomingAttackSpeed: 1,
     referenceAttackWeight: 0.65,

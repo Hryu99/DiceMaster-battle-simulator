@@ -39,8 +39,9 @@ describe('calculatePower', () => {
     const areaPower = calculatePower({ ...baseStats, areaAttack: 80 }).power
     const baseBreakdown = calculatePower(baseStats)
     const areaBreakdown = calculatePower({ ...baseStats, areaAttack: 80 })
+    const referenceEnemyArmor = calculateReferenceEnemyArmor(baseStats)
     const expectedAreaDps =
-      calculateArmorReducedDamage(30 * 0.8, BATTLE_CONFIG.power.averageEnemyArmor) *
+      calculateArmorReducedDamage(30 * 0.8, referenceEnemyArmor) *
       BATTLE_CONFIG.power.averageExtraTargets *
       BATTLE_CONFIG.power.areaEfficiency *
       1
@@ -58,7 +59,7 @@ describe('calculatePower', () => {
     })
 
     expect(breakdown.expectedHitDamage).toBeCloseTo(
-      calculateArmorReducedDamage(100, BATTLE_CONFIG.power.averageEnemyArmor) * 2,
+      calculateArmorReducedDamage(100, calculateReferenceEnemyArmor({ ...baseStats, attack: 100 })) * 2,
     )
   })
 
@@ -70,8 +71,15 @@ describe('calculatePower', () => {
       critDamage: 300,
       areaAttack: 100,
     })
+    const referenceEnemyArmor = calculateReferenceEnemyArmor({
+      ...baseStats,
+      attack: 100,
+      critChance: 100,
+      critDamage: 300,
+      areaAttack: 100,
+    })
     const expectedAreaDps =
-      calculateArmorReducedDamage(100, BATTLE_CONFIG.power.averageEnemyArmor) *
+      calculateArmorReducedDamage(100, referenceEnemyArmor) *
       BATTLE_CONFIG.power.averageExtraTargets *
       BATTLE_CONFIG.power.areaEfficiency *
       1
@@ -145,13 +153,23 @@ describe('calculatePower', () => {
   })
 
   it('values thorns as a percentage of armor', () => {
-    const breakdown = calculatePower({ ...baseStats, armor: 200, thorns: 10 })
+    const statsWithThorns = { ...baseStats, armor: 200, thorns: 10 }
+    const breakdown = calculatePower(statsWithThorns)
     const expectedThornsRawDamage = 200 * 0.1
 
     expect(breakdown.thornsValue).toBeCloseTo(
-      calculateArmorReducedDamage(expectedThornsRawDamage, BATTLE_CONFIG.power.averageEnemyArmor) *
+      calculateArmorReducedDamage(expectedThornsRawDamage, calculateReferenceEnemyArmor(statsWithThorns)) *
         BATTLE_CONFIG.power.averageIncomingAttackSpeed *
         BATTLE_CONFIG.power.thornsEfficiency,
     )
   })
 })
+
+function calculateReferenceEnemyArmor(stats: CombatantStats): number {
+  const referenceIncomingHit =
+    stats.attack * BATTLE_CONFIG.power.referenceAttackWeight +
+    (stats.health / BATTLE_CONFIG.power.referenceTargetTtk) * BATTLE_CONFIG.power.referenceHealthWeight +
+    (stats.armor / BATTLE_CONFIG.power.expectedArmorToAttackRatio) * BATTLE_CONFIG.power.referenceArmorWeight
+
+  return referenceIncomingHit * BATTLE_CONFIG.power.expectedArmorToAttackRatio
+}

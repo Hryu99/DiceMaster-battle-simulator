@@ -60,6 +60,24 @@ describe('power lab', () => {
     ).toEqual(expect.arrayContaining(['attack-heavy', 'speed-heavy', 'crit-heavy', 'tank-health', 'tank-armor', 'sustain', 'thorns']))
   })
 
+  it('scales absolute archetype thresholds with target power', () => {
+    const absoluteStats: CombatantStats = {
+      ...stats,
+      attack: 70,
+      health: 350,
+      armor: 70,
+      thorns: 30,
+    }
+    const highTierScale = 1000 / DEFAULT_POWER_LAB_CONFIG.targetPower
+
+    expect(tagBuild(absoluteStats)).toEqual(
+      expect.arrayContaining(['attack-heavy', 'tank-health', 'tank-armor', 'thorns']),
+    )
+    expect(tagBuild(absoluteStats, highTierScale)).not.toEqual(
+      expect.arrayContaining(['attack-heavy', 'tank-health', 'tank-armor', 'thorns']),
+    )
+  })
+
   it('runs a symmetric one-vs-one matrix', () => {
     const builds = [
       createBuild('one', stats),
