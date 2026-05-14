@@ -1,7 +1,8 @@
+import { BATTLE_CONFIG } from './config'
 import { calculatePower } from './power'
 import { SeededRandom, type RandomSource } from './rng'
 import { runSimulations } from './simulator'
-import type { Combatant, CombatantStats, Team } from './types'
+import type { Combatant, CombatantStats, PowerBreakdown, Team } from './types'
 
 export type BuildTag =
   | 'attack-heavy'
@@ -33,6 +34,7 @@ export interface PowerLabBuild {
   combatant: Combatant
   power: number
   tags: BuildTag[]
+  diagnostics: PowerLabDiagnostics
 }
 
 export interface PowerLabBuildResult extends PowerLabBuild {
@@ -48,6 +50,7 @@ export interface PowerLabTagSummary {
   tag: BuildTag
   buildCount: number
   averageWinRate: number
+  diagnostics: PowerLabDiagnostics
 }
 
 export interface PowerLabReport {
@@ -57,6 +60,22 @@ export interface PowerLabReport {
   tagSummaries: PowerLabTagSummary[]
   topWinners: PowerLabBuildResult[]
   topLosers: PowerLabBuildResult[]
+}
+
+export interface PowerLabDiagnostics {
+  attack: number
+  health: number
+  armor: number
+  attackSpeed: number
+  expectedHitDamage: number
+  dps: number
+  effectiveHealth: number
+  sustain: number
+  hitImpactMultiplier: number
+  hitToReferenceRatio: number
+  referenceIncomingHit: number
+  referenceEnemyArmor: number
+  thornsValue: number
 }
 
 const BASE_POWER_FOR_RANGES = 150
@@ -106,11 +125,13 @@ export function generateRandomBuilds(config: PowerLabConfig): PowerLabBuild[] {
   return Array.from({ length: config.candidateCount }, (_, index) => {
     const stats = generateStats(config.statRanges, rng)
     const combatant = createLabCombatant(`build-${index + 1}`, stats)
+    const breakdown = calculatePower(stats, powerOptions)
 
     return {
       combatant,
-      power: calculatePower(stats, powerOptions).power,
+      power: breakdown.power,
       tags: tagBuild(stats, tagScale),
+      diagnostics: createPowerLabDiagnostics(stats, breakdown, tagScale),
     }
   })
 }
@@ -173,13 +194,18 @@ export function tagBuild(statsInput: CombatantStats, scale = 1): BuildTag[] {
 }
 
 export function summarizeTags(builds: PowerLabBuildResult[]): PowerLabTagSummary[] {
-  const groups = new Map<BuildTag, { totalWinRate: number; buildCount: number }>()
+  const groups = new Map<BuildTag, { totalWinRate: number; buildCount: number; diagnostics: PowerLabDiagnostics }>()
 
   for (const build of builds) {
     for (const tag of build.tags) {
-      const group = groups.get(tag) ?? { totalWinRate: 0, buildCount: 0 }
+      const group = groups.get(tag) ?? {
+        totalWinRate: 0,
+        buildCount: 0,
+        diagnostics: createEmptyDiagnostics(),
+      }
       group.totalWinRate += build.winRate
       group.buildCount += 1
+      addDiagnostics(group.diagnostics, build.diagnostics)
       groups.set(tag, group)
     }
   }
@@ -189,8 +215,48 @@ export function summarizeTags(builds: PowerLabBuildResult[]): PowerLabTagSummary
       tag,
       buildCount: group.buildCount,
       averageWinRate: group.buildCount > 0 ? group.totalWinRate / group.buildCount : 0,
+      diagnostics: divideDiagnostics(group.diagnostics, group.buildCount),
     }))
     .sort((left, right) => right.averageWinRate - left.averageWinRate)
+}
+
+export function createPowerLabDiagnostics(
+  stats: CombatantStats,
+  breakdown: PowerBreakdown,
+  enemyArmorScale = 1,
+): PowerLabDiagnostics {
+  const referenceIncomingHit = calculateDiagnosticReferenceIncomingHit(stats)
+  const referenceEnemyArmor = BATTLE_CONFIG.power.averageEnemyArmor * Math.max(Number.EPSILON, enemyArmorScale)
+
+  return {
+    attack: stats.attack,
+    health: stats.health,
+    armor: stats.armor,
+    attackSpeed: stats.attackSpeed,
+    expectedHitDamage: breakdown.expectedHitDamage,
+    dps: breakdown.dps,
+    effectiveHealth: breakdown.effectiveHealth,
+    sustain: breakdown.sustain,
+    hitImpactMultiplier: breakdown.hitImpactMultiplier,
+    hitToReferenceRatio: breakdown.expectedHitDamage / Math.max(referenceIncomingHit, Number.EPSILON),
+    referenceIncomingHit,
+    referenceEnemyArmor,
+    thornsValue: breakdown.thornsValue,
+  }
+}
+
+function calculateDiagnosticReferenceIncomingHit(stats: CombatantStats): number {
+  const powerConfig = BATTLE_CONFIG.power
+  const attackScale = Math.max(0, stats.attack)
+  const healthScale = Math.max(1, stats.health) / powerConfig.referenceTargetTtk
+  const armorScale = Math.max(0, stats.armor) / powerConfig.expectedArmorToAttackRatio
+
+  return Math.max(
+    Number.EPSILON,
+    attackScale * powerConfig.referenceAttackWeight +
+      healthScale * powerConfig.referenceHealthWeight +
+      armorScale * powerConfig.referenceArmorWeight,
+  )
 }
 
 function mergeConfig(overrides: Partial<PowerLabConfig>): PowerLabConfig {
@@ -206,6 +272,60 @@ function mergeConfig(overrides: Partial<PowerLabConfig>): PowerLabConfig {
   return {
     ...config,
     statRanges: scaleStatRanges(config),
+  }
+}
+
+function createEmptyDiagnostics(): PowerLabDiagnostics {
+  return {
+    attack: 0,
+    health: 0,
+    armor: 0,
+    attackSpeed: 0,
+    expectedHitDamage: 0,
+    dps: 0,
+    effectiveHealth: 0,
+    sustain: 0,
+    hitImpactMultiplier: 0,
+    hitToReferenceRatio: 0,
+    referenceIncomingHit: 0,
+    referenceEnemyArmor: 0,
+    thornsValue: 0,
+  }
+}
+
+function addDiagnostics(target: PowerLabDiagnostics, source: PowerLabDiagnostics): void {
+  target.attack += source.attack
+  target.health += source.health
+  target.armor += source.armor
+  target.attackSpeed += source.attackSpeed
+  target.expectedHitDamage += source.expectedHitDamage
+  target.dps += source.dps
+  target.effectiveHealth += source.effectiveHealth
+  target.sustain += source.sustain
+  target.hitImpactMultiplier += source.hitImpactMultiplier
+  target.hitToReferenceRatio += source.hitToReferenceRatio
+  target.referenceIncomingHit += source.referenceIncomingHit
+  target.referenceEnemyArmor += source.referenceEnemyArmor
+  target.thornsValue += source.thornsValue
+}
+
+function divideDiagnostics(diagnostics: PowerLabDiagnostics, divisor: number): PowerLabDiagnostics {
+  const safeDivisor = Math.max(1, divisor)
+
+  return {
+    attack: diagnostics.attack / safeDivisor,
+    health: diagnostics.health / safeDivisor,
+    armor: diagnostics.armor / safeDivisor,
+    attackSpeed: diagnostics.attackSpeed / safeDivisor,
+    expectedHitDamage: diagnostics.expectedHitDamage / safeDivisor,
+    dps: diagnostics.dps / safeDivisor,
+    effectiveHealth: diagnostics.effectiveHealth / safeDivisor,
+    sustain: diagnostics.sustain / safeDivisor,
+    hitImpactMultiplier: diagnostics.hitImpactMultiplier / safeDivisor,
+    hitToReferenceRatio: diagnostics.hitToReferenceRatio / safeDivisor,
+    referenceIncomingHit: diagnostics.referenceIncomingHit / safeDivisor,
+    referenceEnemyArmor: diagnostics.referenceEnemyArmor / safeDivisor,
+    thornsValue: diagnostics.thornsValue / safeDivisor,
   }
 }
 

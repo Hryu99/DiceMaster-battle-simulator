@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { calculatePower } from './power'
 import {
   DEFAULT_POWER_LAB_CONFIG,
+  createPowerLabDiagnostics,
   generateRandomBuilds,
   runOneVsOneMatrix,
   runPowerLab,
@@ -33,6 +34,14 @@ describe('power lab', () => {
     expect(firstRun.map((build) => build.combatant.stats)).toEqual(
       secondRun.map((build) => build.combatant.stats),
     )
+  })
+
+  it('adds diagnostics to generated builds', () => {
+    const [build] = generateRandomBuilds(testConfig({ candidateCount: 1, seed: 123 }))
+
+    expect(build.diagnostics.attack).toBe(build.combatant.stats.attack)
+    expect(build.diagnostics.hitToReferenceRatio).toBeGreaterThan(0)
+    expect(build.diagnostics.referenceEnemyArmor).toBeGreaterThan(0)
   })
 
   it('selects builds closest to target power within tolerance', () => {
@@ -105,6 +114,7 @@ describe('power lab', () => {
     expect(report.builds.length).toBeLessThanOrEqual(4)
     expect(report.topWinners.length).toBeLessThanOrEqual(4)
     expect(report.topLosers.length).toBeLessThanOrEqual(4)
+    expect(report.tagSummaries[0]?.diagnostics.hitToReferenceRatio).toBeGreaterThan(0)
   })
 
   it('scales absolute stat ranges with target power', () => {
@@ -156,5 +166,6 @@ function createBuild(id: string, buildStats: CombatantStats): PowerLabBuild {
     combatant,
     power: calculatePower(buildStats).power,
     tags: tagBuild(buildStats),
+    diagnostics: createPowerLabDiagnostics(buildStats, calculatePower(buildStats)),
   }
 }

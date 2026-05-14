@@ -405,6 +405,13 @@ function PowerLabReportPanel({ report }: { report: PowerLabReport }) {
               <th>Тег</th>
               <th>Билдов</th>
               <th>Средний win rate</th>
+              <th>Avg A</th>
+              <th>Avg HP</th>
+              <th>Avg Arm</th>
+              <th>Hit/Ref</th>
+              <th>Hit x</th>
+              <th>EHP</th>
+              <th>DPS</th>
             </tr>
           </thead>
           <tbody>
@@ -413,6 +420,13 @@ function PowerLabReportPanel({ report }: { report: PowerLabReport }) {
                 <td>{summary.tag}</td>
                 <td>{summary.buildCount}</td>
                 <td>{formatPercent(summary.averageWinRate)}</td>
+                <td>{formatNumber(summary.diagnostics.attack, 1)}</td>
+                <td>{formatNumber(summary.diagnostics.health, 1)}</td>
+                <td>{formatNumber(summary.diagnostics.armor, 1)}</td>
+                <td>{formatNumber(summary.diagnostics.hitToReferenceRatio, 2)}</td>
+                <td>{formatNumber(summary.diagnostics.hitImpactMultiplier, 2)}</td>
+                <td>{formatNumber(summary.diagnostics.effectiveHealth, 1)}</td>
+                <td>{formatNumber(summary.diagnostics.dps, 1)}</td>
               </tr>
             ))}
           </tbody>
@@ -438,6 +452,10 @@ function PowerLabBuildTable({ builds }: { builds: PowerLabBuildResult[] }) {
             <th>Сила</th>
             <th>Win rate</th>
             <th>Теги</th>
+            <th>Hit/Ref</th>
+            <th>Hit x</th>
+            <th>EHP</th>
+            <th>DPS</th>
             <th>Статы</th>
           </tr>
         </thead>
@@ -448,6 +466,10 @@ function PowerLabBuildTable({ builds }: { builds: PowerLabBuildResult[] }) {
               <td>{formatNumber(build.power)}</td>
               <td>{formatPercent(build.winRate)}</td>
               <td>{build.tags.join(', ')}</td>
+              <td>{formatNumber(build.diagnostics.hitToReferenceRatio, 2)}</td>
+              <td>{formatNumber(build.diagnostics.hitImpactMultiplier, 2)}</td>
+              <td>{formatNumber(build.diagnostics.effectiveHealth, 1)}</td>
+              <td>{formatNumber(build.diagnostics.dps, 1)}</td>
               <td>{formatStats(build.combatant.stats)}</td>
             </tr>
           ))}
