@@ -58,7 +58,8 @@ describe('calculatePower', () => {
     })
 
     expect(breakdown.expectedHitDamage).toBeCloseTo(
-      calculateArmorReducedDamage(100, BATTLE_CONFIG.power.averageEnemyArmor) * 2,
+      calculateArmorReducedDamage(100, BATTLE_CONFIG.power.averageEnemyArmor) *
+        (1 + BATTLE_CONFIG.power.critEfficiency),
     )
   })
 
@@ -84,6 +85,27 @@ describe('calculatePower', () => {
     const withArea = calculatePower({ ...baseStats, lifesteal: 50, areaAttack: 100 })
 
     expect(withArea.sustain).toBeCloseTo(withoutArea.sustain)
+  })
+
+  it('discounts attack speed above the baseline in power dps', () => {
+    const breakdown = calculatePower({ ...baseStats, attackSpeed: 200, critChance: 0 })
+    const expectedHitDamage = calculateArmorReducedDamage(baseStats.attack, BATTLE_CONFIG.power.averageEnemyArmor)
+    const expectedAttackSpeed = 1 + (2 - 1) * BATTLE_CONFIG.power.attackSpeedEfficiency
+
+    expect(breakdown.dps).toBeCloseTo(expectedHitDamage * expectedAttackSpeed)
+  })
+
+  it('combines defense and pressure with configured power weights', () => {
+    const breakdown = calculatePower(baseStats)
+    const pressure = breakdown.dps * breakdown.hitImpactMultiplier + breakdown.thornsValue
+    const sustainMultiplier =
+      1 + breakdown.sustain / Math.max(1, pressure + breakdown.effectiveHealth / 20)
+
+    expect(breakdown.power).toBeCloseTo(
+      Math.pow(breakdown.effectiveHealth, BATTLE_CONFIG.power.defensePowerWeight) *
+        Math.pow(pressure, BATTLE_CONFIG.power.offensePowerWeight) *
+        sustainMultiplier,
+    )
   })
 
   it('can scale reference enemy armor for higher power tiers', () => {

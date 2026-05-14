@@ -328,24 +328,29 @@ averageEnemyArmor = 20
 
 ```text
 baseHitAfterArmor = damageAfterArmor(attack, averageEnemyArmor)
-expectedHitDamage = baseHitAfterArmor * (1 + critChance * (critDamage - 1))
+expectedHitDamage = baseHitAfterArmor * (1 + critChance * (critDamage - 1) * 0.85)
 ```
 
 Здесь `critChance` и `critDamage` уже переведены из процентов во внутренние коэффициенты.
+
+Коэффициент `0.85` - это `critEfficiency`. Он снижает расчетную ценность критов в формуле силы, потому что Power Lab показал: чистое математическое ожидание критического урона переоценивает критовые билды в 1v1.
 
 Пример: атака 100, средняя броня цели 20. Шанс крита 30%, урон крита 200%.
 
 ```text
 baseHitAfterArmor = damageAfterArmor(100, 20) = 93.8
-expectedHitDamage = 93.8 * (1 + 0.3 * (2 - 1)) = 121.9
+expectedHitDamage = 93.8 * (1 + 0.3 * (2 - 1) * 0.85) = 117.7
 ```
 
 ### Основной DPS
 
-Ожидаемый урон обычной атаки умножается на атаки в секунду:
+Ожидаемый урон обычной атаки умножается на эффективную скорость атаки.
+
+В бою скорость атаки работает напрямую, но в формуле силы высокие значения скорости немного дисконтируются через `attackSpeedEfficiency`, потому что Power Lab показал переоценку speed-билдов.
 
 ```text
-mainDps = expectedHitDamage * attackSpeed
+effectiveAttackSpeed = 1 + (attackSpeed - 1) * 0.85
+mainDps = expectedHitDamage * effectiveAttackSpeed
 ```
 
 Скорость атаки 100% равна `1.0`, 200% равна `2.0`.
@@ -431,11 +436,30 @@ thornsValue = thornsAfterArmor * averageIncomingAttackSpeed * 1.3
 
 ### Итоговая сила
 
-Итоговая сила объединяет выживаемость и давление:
+Итоговая сила объединяет выживаемость и давление через взвешенную геометрию.
+
+Давление получает больший вес, потому что Power Lab показал: билды с большим EHP, но низким DPS часто проигрывают, даже если старая формула считала их равными.
+
+Текущие веса:
 
 ```text
-power = sqrt(effectiveHealth * (effectiveDps + thornsValue)) * sustainMultiplier
+defensePowerWeight = 0.4
+offensePowerWeight = 0.6
 ```
+
+Сначала считается давление:
+
+```text
+pressure = effectiveDps + thornsValue
+```
+
+Затем итоговая сила:
+
+```text
+power = effectiveHealth^0.4 * pressure^0.6 * sustainMultiplier
+```
+
+Абсолютное значение силы после этой формулы не обязано совпадать со старым масштабом. Важнее, чтобы персонажи с близкой силой давали близкий win rate в Power Lab.
 
 Командная сила считается как сумма сил всех персонажей команды.
 

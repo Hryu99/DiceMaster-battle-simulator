@@ -33,13 +33,15 @@ export function calculatePower(statsInput: CombatantStats, options: PowerCalcula
   const effectiveHealth =
     stats.health * (referenceIncomingHit / Math.max(incomingDamageAfterArmor, Number.EPSILON))
   const baseHitAfterArmor = calculateArmorReducedDamage(stats.attack, referenceEnemyArmor)
-  const expectedHitDamage = baseHitAfterArmor * (1 + stats.critChance * (stats.critDamage - 1))
-  const dps = expectedHitDamage * stats.attackSpeed
+  const expectedHitDamage =
+    baseHitAfterArmor * (1 + stats.critChance * (stats.critDamage - 1) * powerConfig.critEfficiency)
+  const effectiveAttackSpeed = calculateEffectiveAttackSpeed(stats.attackSpeed)
+  const dps = expectedHitDamage * effectiveAttackSpeed
   const hitImpactMultiplier = calculateHitImpactMultiplier(expectedHitDamage, referenceIncomingHit)
   const weightedDps = dps * hitImpactMultiplier
   const areaHitAfterArmor = calculateArmorReducedDamage(stats.attack * stats.areaAttack, referenceEnemyArmor)
   const areaDps =
-    areaHitAfterArmor * powerConfig.averageExtraTargets * powerConfig.areaEfficiency * stats.attackSpeed
+    areaHitAfterArmor * powerConfig.averageExtraTargets * powerConfig.areaEfficiency * effectiveAttackSpeed
   const effectiveDps = weightedDps + areaDps
   const areaMultiplier = dps > 0 ? (dps + areaDps) / dps : 1
   const sustain = dps * stats.lifesteal * powerConfig.lifestealEfficiency
@@ -47,7 +49,11 @@ export function calculatePower(statsInput: CombatantStats, options: PowerCalcula
   const thornsRawDamage = stats.armor * stats.thorns
   const thornsAfterArmor = calculateArmorReducedDamage(thornsRawDamage, referenceEnemyArmor)
   const thornsValue = thornsAfterArmor * powerConfig.averageIncomingAttackSpeed * powerConfig.thornsEfficiency
-  const power = Math.sqrt(effectiveHealth * (effectiveDps + thornsValue)) * sustainMultiplier
+  const pressure = effectiveDps + thornsValue
+  const power =
+    Math.pow(effectiveHealth, powerConfig.defensePowerWeight) *
+    Math.pow(pressure, powerConfig.offensePowerWeight) *
+    sustainMultiplier
 
   return {
     effectiveHealth,
@@ -59,6 +65,13 @@ export function calculatePower(statsInput: CombatantStats, options: PowerCalcula
     thornsValue,
     power,
   }
+}
+
+function calculateEffectiveAttackSpeed(attackSpeed: number): number {
+  return Math.max(
+    Number.EPSILON,
+    1 + (attackSpeed - 1) * BATTLE_CONFIG.power.attackSpeedEfficiency,
+  )
 }
 
 function calculateReferenceEnemyArmor(enemyArmorScale = 1): number {
