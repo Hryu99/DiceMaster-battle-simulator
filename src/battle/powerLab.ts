@@ -20,13 +20,19 @@ export interface StatRange {
   step?: number
 }
 
-export interface PowerLabConfig {
-  targetPower: number
-  tolerancePercent: number
-  candidateCount: number
-  selectedBuildCount: number
+export interface PowerLabMatrixConfig {
   roundsPerPair: number
   seed: number
+}
+
+export interface PowerLabSelectionConfig {
+  targetPower: number
+  tolerancePercent: number
+  selectedBuildCount: number
+}
+
+export interface PowerLabConfig extends PowerLabMatrixConfig, PowerLabSelectionConfig {
+  candidateCount: number
   statRanges: Record<keyof CombatantStats, StatRange>
 }
 
@@ -149,7 +155,10 @@ export function generateRandomBuilds(config: PowerLabConfig): PowerLabBuild[] {
   })
 }
 
-export function selectBuildsNearPower(builds: PowerLabBuild[], config: PowerLabConfig): PowerLabBuild[] {
+export function selectBuildsNearPower(
+  builds: PowerLabBuild[],
+  config: PowerLabSelectionConfig,
+): PowerLabBuild[] {
   const tolerance = config.targetPower * (config.tolerancePercent / 100)
   const minPower = config.targetPower - tolerance
   const maxPower = config.targetPower + tolerance
@@ -160,7 +169,10 @@ export function selectBuildsNearPower(builds: PowerLabBuild[], config: PowerLabC
     .slice(0, config.selectedBuildCount)
 }
 
-export function runOneVsOneMatrix(builds: PowerLabBuild[], config: PowerLabConfig): PowerLabBuildResult[] {
+export function runOneVsOneMatrix(
+  builds: PowerLabBuild[],
+  config: PowerLabMatrixConfig,
+): PowerLabBuildResult[] {
   const results = builds.map<PowerLabBuildResult>((build) => ({
     ...build,
     wins: 0,

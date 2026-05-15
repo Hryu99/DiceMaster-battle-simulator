@@ -334,6 +334,43 @@ button:disabled {
   max-width: 1180px;
 }
 
+.power-lab-mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.power-lab-mode-tabs button {
+  border: 1px solid var(--border);
+  background: var(--chip-bg);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.power-lab-mode-tabs button.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--chip-bg));
+}
+
+.power-lab-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.power-lab-controls select {
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
 .power-lab-controls {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
