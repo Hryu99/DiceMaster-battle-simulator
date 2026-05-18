@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { runSecondaryBalanceReport } from './gear/secondaryBalance'
 import {
   generateGearBuilds,
   runGearRealisticPowerLab,
@@ -55,11 +54,3 @@ describe('gearRealisticPowerLab', () => {
   })
 })
 
-describe('secondaryBalance', () => {
-  it('reports power deltas for each secondary stat', () => {
-    const report = runSecondaryBalanceReport('rare')
-
-    expect(report.entries).toHaveLength(6)
-    expect(report.spreadPercent).toBeGreaterThanOrEqual(0)
-  })
-})

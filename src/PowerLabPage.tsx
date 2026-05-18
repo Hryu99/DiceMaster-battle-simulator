@@ -285,10 +285,17 @@ function GearRealisticReportPanel({ report }: { report: GearRealisticPowerLabRep
 function SecondaryBalanceReportPanel({ report }: { report: SecondaryBalanceReport }) {
   return (
     <section className="results-panel">
+      <p className="lead">
+        Сравнение secondary-статов на одной rare-броне. «Δ только secondary» — прирост относительно героя с бронёй (только +HP),
+        без повторного учёта здоровья с брони.
+      </p>
+
       <div className="results-grid">
         <LabMetric label="Редкость" value={report.rarityId} />
-        <LabMetric label="Базовая сила" value={formatNumber(report.baselinePower, 1)} />
-        <LabMetric label="Разброс Δ силы" value={`${formatNumber(report.spreadPercent, 1)}%`} />
+        <LabMetric label="Сила голого героя" value={formatNumber(report.baselinePower, 1)} />
+        <LabMetric label="Сила с бронёй (только HP)" value={formatNumber(report.chestOnlyPower, 1)} />
+        <LabMetric label="Прирост от брони" value={`${formatNumber(report.chestOnlyDeltaPercent, 1)}%`} />
+        <LabMetric label="Разброс secondary" value={`${formatNumber(report.secondarySpreadPercent, 1)}%`} />
         <LabMetric label="Цель разброса" value={`≤ ${report.targetSpreadPercent}%`} />
         <LabMetric label="В пределах цели" value={report.withinTargetSpread ? 'да' : 'нет'} />
       </div>
@@ -300,8 +307,10 @@ function SecondaryBalanceReportPanel({ report }: { report: SecondaryBalanceRepor
               <th>Secondary</th>
               <th>Значение</th>
               <th>Сила</th>
-              <th>Δ силы</th>
-              <th>Δ силы, %</th>
+              <th>Δ от голого</th>
+              <th>Δ от голого, %</th>
+              <th>Δ только secondary</th>
+              <th>Δ только secondary, %</th>
             </tr>
           </thead>
           <tbody>
@@ -312,6 +321,8 @@ function SecondaryBalanceReportPanel({ report }: { report: SecondaryBalanceRepor
                 <td>{formatNumber(entry.power, 1)}</td>
                 <td>{formatNumber(entry.powerDelta, 1)}</td>
                 <td>{formatNumber(entry.powerDeltaPercent, 1)}%</td>
+                <td>{formatNumber(entry.secondaryOnlyDelta, 1)}</td>
+                <td>{formatNumber(entry.secondaryOnlyDeltaPercent, 1)}%</td>
               </tr>
             ))}
           </tbody>
