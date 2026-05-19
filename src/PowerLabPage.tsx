@@ -495,5 +495,5 @@ function GearBuildTable({ builds }: { builds: GearRealisticBuildResult[] }) {
 }
 
 function formatStats(stats: CombatantStats): string {
-  return `A ${stats.attack}, HP ${stats.health}, Arm ${stats.armor}, Spd ${stats.attackSpeed}%, Crit ${stats.critChance}/${stats.critDamage}%, LS ${stats.lifesteal}%, Th ${stats.thorns}%`
+  return `A ${stats.attack}, HP ${stats.health}, Arm ${stats.armor}, Spd ${stats.attackSpeed}%, MA ${stats.areaAttack}%, Crit ${stats.critChance}/${stats.critDamage}%, LS ${stats.lifesteal}%, Th ${stats.thorns}%`
 }

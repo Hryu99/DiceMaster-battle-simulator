@@ -15,7 +15,7 @@ export const BATTLE_CONFIG = {
     hitImpactEfficiency: 0.45,
     minHitImpactMultiplier: 0.85,
     maxHitImpactMultiplier: 1.6,
-    areaEfficiency: 0.55,
+    areaEfficiency: 1,
     lifestealEfficiency: 0.35,
     thornsEfficiency: 1.3,
     defensePowerWeight: 0.45,

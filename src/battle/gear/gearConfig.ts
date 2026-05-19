@@ -25,9 +25,9 @@ export const GEAR_CONFIG = {
     ring: 'baseGoldMulti',
   } as const satisfies Record<EquipmentType, string>,
   equipmentBaseStats: {
-    baseHealth: 10,
-    baseAttack: 2.5,
-    baseDefence: 1,
+    baseHealth: 40,
+    baseAttack: 10,
+    baseDefence: 4,
     baseCritRate: 9,
     baseLifeSteal: 8,
     baseMassAttack: 11,
@@ -53,4 +53,4 @@ export const GEAR_CONFIG = {
   equipmentSlots: ['weapon', 'chestarmor', 'shield', 'ring'] as const satisfies readonly EquipmentType[],
 }
 
-export const SECONDARY_BALANCE_TARGET_SPREAD_PERCENT = 10
+export const SECONDARY_BALANCE_TARGET_SPREAD_PERCENT = 5
