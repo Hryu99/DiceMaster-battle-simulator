@@ -17,7 +17,7 @@ enemyArmorScale;1;масштаб брони врага в формуле сил�
 —— КОНФИГ (из config.ts) ——;;
 armorDamageConstant;3;
 minDamageMultiplier;0,05;
-averageEnemyArmor;20;
+playerBaseDefence (база refEnemyArmor);10;из gearConfig.playerBase.defence
 averageExtraTargets;1,5;
 averageIncomingAttackSpeed;1;
 referenceAttackWeight;0,65;
@@ -55,7 +55,7 @@ effectiveHealth (EHP);=B41*B51/B53;116
 mainHitAfterArmor;"=IF((B40)<=0;0;MAX((B40)*$B$19;(B40)*$B$18/($B$18+MAX(0;B52)/(B40))))";
 expectedHitDamage;=B55*(1+B44*(B45-1)*$B$28);
 effectiveAttackSpeed;"=MAX(1E-9;1+(B43-1)*$B$29)";
-dps (main, без hitImpact);=B56*B57;19,7368
+dps (main, без hitImpact);=B56*B57;22,0588
 hitImpactRatio;=B56/B51;
 hitImpactMultiplier;"=MIN($B$32;MAX($B$31;1+$B$30*(B59-1)))";
 weightedDps;=B58*B60;
@@ -68,4 +68,4 @@ thornsRaw;=B42*B48;
 thornsAfterArmor;"=IF((B67)<=0;0;MAX((B67)*$B$19;(B67)*$B$18/($B$18+MAX(0;B52)/(B67))))";
 thornsValue;=B68*$B$22*$B$35;
 pressure;=B64+B69;
-СИЛА (power);"=POWER(B54;$B$36)*POWER(B70;$B$37)*B66";43,2199
+СИЛА (power);"=POWER(B54;$B$36)*POWER(B70;$B$37)*B66";47,2299

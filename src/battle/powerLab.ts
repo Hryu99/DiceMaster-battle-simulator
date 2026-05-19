@@ -1,5 +1,5 @@
 import { BATTLE_CONFIG } from './config'
-import { calculatePower } from './power'
+import { calculatePower, calculateReferenceEnemyArmor } from './power'
 import { SeededRandom, type RandomSource } from './rng'
 import { runSimulations } from './simulator'
 import type { Combatant, CombatantStats, PowerBreakdown, Team } from './types'
@@ -280,7 +280,7 @@ export function createPowerLabDiagnostics(
   enemyArmorScale = 1,
 ): PowerLabDiagnostics {
   const referenceIncomingHit = calculateDiagnosticReferenceIncomingHit(stats)
-  const referenceEnemyArmor = BATTLE_CONFIG.power.averageEnemyArmor * Math.max(Number.EPSILON, enemyArmorScale)
+  const referenceEnemyArmor = calculateReferenceEnemyArmor(enemyArmorScale)
 
   return {
     attack: stats.attack,

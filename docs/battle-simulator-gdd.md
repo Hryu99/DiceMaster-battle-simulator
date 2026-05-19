@@ -318,16 +318,17 @@ effectiveHealth = health * referenceIncomingHit / incomingDamageAfterArmor
 
 Обычная атака считается в том же порядке, что и симуляция: сначала броня цели, потом средний эффект критов.
 
-Для расчета силы используется условная средняя броня врага:
+Для расчета силы используется условная средняя броня врага — базовая броня героя из `gearConfig.playerBase.defence` (сейчас `10`):
 
 ```text
-averageEnemyArmor = 20
+referenceEnemyArmorBase = playerBase.defence
 ```
 
-В обычном расчете силы это фиксированное значение. В Power Lab оно масштабируется единым множителем от целевой силы эксперимента, чтобы все билды одного тира считались против одинаковой условной брони врага.
+В обычном расчете силы это значение из конфига героя. В Power Lab оно масштабируется единым множителем `enemyArmorScale` от целевой силы эксперимента, чтобы все билды одного тира считались против одинаковой условной брони врага.
 
 ```text
-baseHitAfterArmor = damageAfterArmor(attack, averageEnemyArmor)
+referenceEnemyArmor = playerBase.defence * enemyArmorScale
+baseHitAfterArmor = damageAfterArmor(attack, referenceEnemyArmor)
 expectedHitDamage = baseHitAfterArmor * (1 + critChance * (critDamage - 1) * 0.85)
 ```
 
@@ -407,7 +408,7 @@ weightedMainDps = mainDps * hitImpactMultiplier
 Массовая атака также проходит через среднюю броню условного врага. Используется коэффициент эффективности 0.55, чтобы массовая атака не переоценивалась в формуле силы.
 
 ```text
-areaHitAfterArmor = damageAfterArmor(attack * areaAttack, averageEnemyArmor)
+areaHitAfterArmor = damageAfterArmor(attack * areaAttack, referenceEnemyArmor)
 areaDps = areaHitAfterArmor * averageExtraTargets * 0.55 * attackSpeed
 effectiveDps = weightedMainDps + areaDps
 ```
@@ -428,7 +429,7 @@ sustain = mainDps * lifesteal * 0.5
 
 ```text
 thornsRawDamage = armor * thorns
-thornsAfterArmor = damageAfterArmor(thornsRawDamage, averageEnemyArmor)
+thornsAfterArmor = damageAfterArmor(thornsRawDamage, referenceEnemyArmor)
 thornsValue = thornsAfterArmor * averageIncomingAttackSpeed * 1.3
 ```
 
@@ -510,13 +511,13 @@ statScale = 1000 / 150 = 6.67
 
 ```text
 enemyArmorScale = targetPower / 150
-scaledAverageEnemyArmor = averageEnemyArmor * enemyArmorScale
+referenceEnemyArmor = playerBase.defence * enemyArmorScale
 ```
 
-Например, если `averageEnemyArmor = 20`, то при целевой силе 500 Power Lab считает урон всех билдов против средней брони:
+Например, если `playerBase.defence = 10`, то при целевой силе 500 Power Lab считает урон всех билдов против условной брони:
 
 ```text
-20 * 500 / 150 = 66.7
+10 * 500 / 150 = 33.3
 ```
 
 Это значение одинаково для всех билдов внутри одного запуска Power Lab. Оно зависит от тира эксперимента, а не от характеристик конкретного билда.
@@ -601,7 +602,7 @@ Power Lab также показывает baseline всей выбранной �
 - `Arm/Ref Arm` - отношение средней реальной брони выбранных билдов к `Ref Arm`;
 - `A/Ref Arm` - отношение средней атаки выбранных билдов к `Ref Arm`.
 
-Эти baseline-метрики помогают настраивать базовую формулу. Например, если `Arm/Ref Arm` сильно выше 1 на всех тирах, значит `averageEnemyArmor` может быть системно занижен. Если показатель нормальный на силе 150, но сильно растет на силе 500 или 1000, значит проблема может быть в масштабировании брони между тирами.
+Эти baseline-метрики помогают настраивать базовую формулу. Например, если `Arm/Ref Arm` сильно выше 1 на всех тирах, значит база `playerBase.defence` для `referenceEnemyArmor` может быть системно занижена. Если показатель нормальный на силе 150, но сильно растет на силе 500 или 1000, значит проблема может быть в масштабировании брони между тирами.
 
 Power Lab не заменяет ручную балансировку, но помогает быстро найти систематические ошибки формулы силы.
 

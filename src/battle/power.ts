@@ -1,5 +1,6 @@
 import { BATTLE_CONFIG } from './config'
 import { calculateArmorReducedDamage } from './damage'
+import { GEAR_CONFIG } from './gear/gearConfig'
 import type { Combatant, CombatantStats, PowerBreakdown, Team } from './types'
 
 export interface PowerCalculationOptions {
@@ -74,9 +75,13 @@ function calculateEffectiveAttackSpeed(attackSpeed: number): number {
   )
 }
 
-function calculateReferenceEnemyArmor(enemyArmorScale = 1): number {
-  const powerConfig = BATTLE_CONFIG.power
-  return powerConfig.averageEnemyArmor * Math.max(Number.EPSILON, enemyArmorScale)
+/** Базовая броня «среднего врага» = playerBase.defence из gearConfig. */
+export function getReferenceEnemyArmorBase(): number {
+  return GEAR_CONFIG.playerBase.defence
+}
+
+export function calculateReferenceEnemyArmor(enemyArmorScale = 1): number {
+  return getReferenceEnemyArmorBase() * Math.max(Number.EPSILON, enemyArmorScale)
 }
 
 function calculateHitImpactMultiplier(expectedHitDamage: number, referenceIncomingHit: number): number {

@@ -12,6 +12,7 @@ import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BATTLE_CONFIG } from '../src/battle/config.ts'
+import { GEAR_CONFIG } from '../src/battle/gear/gearConfig.ts'
 import { calculateArmorReducedDamage } from '../src/battle/damage.ts'
 import { calculatePower } from '../src/battle/power.ts'
 import type { CombatantStats } from '../src/battle/types.ts'
@@ -96,7 +97,12 @@ function buildRows(): CsvRow[] {
   addRow('—— КОНФИГ (из config.ts) ——', '', '')
   addRow('armorDamageConstant', n(BATTLE_CONFIG.armorDamageConstant), '', 'cfgArmorK')
   addRow('minDamageMultiplier', n(BATTLE_CONFIG.minDamageMultiplier), '', 'cfgMinDmg')
-  addRow('averageEnemyArmor', n(p.averageEnemyArmor), '', 'cfgAvgEnemyArmor')
+  addRow(
+    'playerBaseDefence (база refEnemyArmor)',
+    n(GEAR_CONFIG.playerBase.defence),
+    'из gearConfig.playerBase.defence',
+    'cfgPlayerBaseDef',
+  )
   addRow('averageExtraTargets', n(p.averageExtraTargets), '', 'cfgAvgExtraTargets')
   addRow('averageIncomingAttackSpeed', n(p.averageIncomingAttackSpeed), '', 'cfgAvgIncAtkSpd')
   addRow('referenceAttackWeight', n(p.referenceAttackWeight), '', 'cfgRefAtkW')
@@ -135,7 +141,7 @@ function buildRows(): CsvRow[] {
     '',
     'refIncoming',
   )
-  addRow('refEnemyArmor', `=${$(R.cfgAvgEnemyArmor)}*${b(R.enemyScale)}`, '', 'refEnemyArmor')
+  addRow('refEnemyArmor', `=${$(R.cfgPlayerBaseDef)}*${b(R.enemyScale)}`, '', 'refEnemyArmor')
   addRow(
     'incomingOnYou (после своей брони)',
     armorFormula(b(R.refIncoming), R.normArm),
