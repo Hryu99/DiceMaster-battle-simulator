@@ -59,7 +59,10 @@ export function calculatePower(statsInput: CombatantStats, options: PowerCalcula
   const effectiveDps = weightedDps + areaDps
   const areaMultiplier = dps > 0 ? (dps + areaDps) / dps : 1
   const sustain = dps * stats.lifesteal * powerConfig.lifestealEfficiency
-  const sustainMultiplier = 1 + sustain / Math.max(1, effectiveDps + effectiveHealth / 20)
+  const sustainMultiplier =
+    1 +
+    sustain /
+    Math.max(1, effectiveDps + effectiveHealth / powerConfig.sustainEffectiveHealthDivisor)
   const thornsRawDamage = stats.armor * stats.thorns
   const thornsAfterArmor = calculateArmorReducedDamage(thornsRawDamage, referenceEnemyArmor)
   const thornsValue =

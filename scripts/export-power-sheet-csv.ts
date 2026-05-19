@@ -122,39 +122,110 @@ function buildRows(): CsvRow[] {
   addRow('Thorns, %', '0', '', 'thorns')
   addRow('', '', '')
 
-  addRow('armorDamageConstant', n(BATTLE_CONFIG.armorDamageConstant), '', 'cfgArmorK')
-  addRow('minDamageMultiplier', n(BATTLE_CONFIG.minDamageMultiplier), '', 'cfgMinDmg')
+  addRow(
+    'armorDamageConstant',
+    n(BATTLE_CONFIG.armorDamageConstant),
+    'константа K в формуле снижения урона бронёй',
+    'cfgArmorK',
+  )
+  addRow(
+    'minDamageMultiplier',
+    n(BATTLE_CONFIG.minDamageMultiplier),
+    'минимальная доля входящего урона после брони',
+    'cfgMinDmg',
+  )
   addRow('—— ЭТАЛОН ПРОТИВНИКА (gearConfig.playerBase) ——', '', '')
-  addRow('playerBaseAttack', n(GEAR_CONFIG.playerBase.attack), '', 'cfgPlayerBaseAtk')
-  addRow('playerBaseHealth', n(GEAR_CONFIG.playerBase.health), '', 'cfgPlayerBaseHp')
+  addRow(
+    'playerBaseAttack',
+    n(GEAR_CONFIG.playerBase.attack),
+    'базовая атака эталона; знаменатель scaleAttack',
+    'cfgPlayerBaseAtk',
+  )
+  addRow(
+    'playerBaseHealth',
+    n(GEAR_CONFIG.playerBase.health),
+    'базовое HP эталона; знаменатель scaleHealth',
+    'cfgPlayerBaseHp',
+  )
   addRow(
     'playerBaseDefence',
     n(GEAR_CONFIG.playerBase.defence),
-    'refEnemyArmor при scale=1',
+    'базовая броня эталона; refEnemyArmor при scale=1',
     'cfgPlayerBaseDef',
   )
   addRow(
     'playerBaseSpeed (база incoming atk speed)',
     n(GEAR_CONFIG.playerBase.speed / 100),
-    'playerBase.speed/100 → множитель',
+    'playerBase.speed/100 — множитель скорости входящих ударов',
     'cfgPlayerBaseSpd',
   )
   addRow('', '', '')
-  addRow('—— КОНФИГ СИЛЫ (config.ts) ——', '', '')
-  addRow('averageExtraTargets', n(p.averageExtraTargets), '', 'cfgAvgExtraTargets')
-  addRow('opponentScaleAttackWeight', n(p.opponentScaleAttackWeight), '', 'cfgOppScaleAtkW')
-  addRow('opponentScaleHealthWeight', n(p.opponentScaleHealthWeight), '', 'cfgOppScaleHpW')
-  addRow('opponentScaleArmorWeight', n(p.opponentScaleArmorWeight), '', 'cfgOppScaleArmW')
-  addRow('critEfficiency', n(p.critEfficiency), '', 'cfgCritEff')
-  addRow('attackSpeedEfficiency', n(p.attackSpeedEfficiency), '', 'cfgAtkSpdEff')
-  addRow('hitImpactEfficiency', n(p.hitImpactEfficiency), '', 'cfgHitImpactEff')
-  addRow('minHitImpactMultiplier', n(p.minHitImpactMultiplier), '', 'cfgMinHitImpact')
-  addRow('maxHitImpactMultiplier', n(p.maxHitImpactMultiplier), '', 'cfgMaxHitImpact')
-  addRow('areaEfficiency', n(p.areaEfficiency), '', 'cfgAreaEff')
-  addRow('lifestealEfficiency', n(p.lifestealEfficiency), '', 'cfgLsEff')
-  addRow('thornsEfficiency', n(p.thornsEfficiency), '', 'cfgThornsEff')
-  addRow('defensePowerWeight', n(p.defensePowerWeight), '', 'cfgDefW')
-  addRow('offensePowerWeight', n(p.offensePowerWeight), '', 'cfgOffW')
+  addRow('—— КОНФИГ СИЛЫ (config.ts) ——', '', 'подсказки = комментарии в config.ts')
+  addRow(
+    'averageExtraTargets',
+    n(p.averageExtraTargets),
+    'среднее число доп. целей для массовой атаки в силе',
+    'cfgAvgExtraTargets',
+  )
+  addRow(
+    'opponentScaleAttackWeight',
+    n(p.opponentScaleAttackWeight),
+    'вес атаки в S (масштаб эталонного противника)',
+    'cfgOppScaleAtkW',
+  )
+  addRow(
+    'opponentScaleHealthWeight',
+    n(p.opponentScaleHealthWeight),
+    'вес здоровья в S',
+    'cfgOppScaleHpW',
+  )
+  addRow(
+    'opponentScaleArmorWeight',
+    n(p.opponentScaleArmorWeight),
+    'вес брони в S',
+    'cfgOppScaleArmW',
+  )
+  addRow('critEfficiency', n(p.critEfficiency), 'доля крит-урона, учитываемая в expected hit', 'cfgCritEff')
+  addRow(
+    'attackSpeedEfficiency',
+    n(p.attackSpeedEfficiency),
+    'эффективность скорости атаки выше 100%',
+    'cfgAtkSpdEff',
+  )
+  addRow(
+    'hitImpactEfficiency',
+    n(p.hitImpactEfficiency),
+    'чувствительность hit impact к размеру удара',
+    'cfgHitImpactEff',
+  )
+  addRow(
+    'minHitImpactMultiplier',
+    n(p.minHitImpactMultiplier),
+    'нижняя граница множителя удара',
+    'cfgMinHitImpact',
+  )
+  addRow(
+    'maxHitImpactMultiplier',
+    n(p.maxHitImpactMultiplier),
+    'верхняя граница множителя удара',
+    'cfgMaxHitImpact',
+  )
+  addRow('areaEfficiency', n(p.areaEfficiency), 'эффективность урона по области в effective DPS', 'cfgAreaEff')
+  addRow(
+    'lifestealEfficiency',
+    n(p.lifestealEfficiency),
+    'доля main DPS × lifesteal, идущая в sustain',
+    'cfgLsEff',
+  )
+  addRow('thornsEfficiency', n(p.thornsEfficiency), 'множитель ценности шипов в pressure', 'cfgThornsEff')
+  addRow(
+    'sustainEffectiveHealthDivisor',
+    n(p.sustainEffectiveHealthDivisor),
+    'EHP в знаменателе sustain: слабее, чем DPS',
+    'cfgSustainEhpDiv',
+  )
+  addRow('defensePowerWeight', n(p.defensePowerWeight), 'степень EHP в итоговой силе', 'cfgDefW')
+  addRow('offensePowerWeight', n(p.offensePowerWeight), 'степень pressure в итоговой силе', 'cfgOffW')
   addRow('', '', '')
 
   addRow('—— НОРМАЛИЗАЦИЯ (как normalizeStats) ——', '', '')
@@ -239,7 +310,7 @@ function buildRows(): CsvRow[] {
   addRow('sustain (только от main dps)', `=${b(R.dps)}*${b(R.normLs)}*${$(R.cfgLsEff)}`, '', 'sustain')
   addRow(
     'sustainMultiplier',
-    `=1+${b(R.sustain)}/MAX(1;${b(R.effectiveDps)}+${b(R.ehp)}/20)`,
+    `=1+${b(R.sustain)}/MAX(1;${b(R.effectiveDps)}+${b(R.ehp)}/${$(R.cfgSustainEhpDiv)})`,
     '',
     'sustainMult',
   )

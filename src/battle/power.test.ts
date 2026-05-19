@@ -113,9 +113,16 @@ describe('calculatePower', () => {
 
   it('combines defense and pressure with configured power weights', () => {
     const breakdown = calculatePower(baseStats)
-    const pressure = breakdown.dps * breakdown.hitImpactMultiplier + breakdown.thornsValue
+    const effectiveDps = breakdown.dps * breakdown.hitImpactMultiplier
+    const pressure = effectiveDps + breakdown.thornsValue
     const sustainMultiplier =
-      1 + breakdown.sustain / Math.max(1, pressure + breakdown.effectiveHealth / 20)
+      1 +
+      breakdown.sustain /
+      Math.max(
+        1,
+        effectiveDps +
+          breakdown.effectiveHealth / BATTLE_CONFIG.power.sustainEffectiveHealthDivisor,
+      )
 
     expect(breakdown.power).toBeCloseTo(
       Math.pow(breakdown.effectiveHealth, BATTLE_CONFIG.power.defensePowerWeight) *

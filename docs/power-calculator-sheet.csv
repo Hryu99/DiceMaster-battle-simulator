@@ -13,29 +13,30 @@ Lifesteal, %;0;
 Mass Attack (area), %;0;
 Thorns, %;0;
 ;;
-armorDamageConstant;3;
-minDamageMultiplier;0,05;
+armorDamageConstant;3;константа K в формуле снижения урона бронёй
+minDamageMultiplier;0,05;минимальная доля входящего урона после брони
 —— ЭТАЛОН ПРОТИВНИКА (gearConfig.playerBase) ——;;
-playerBaseAttack;25;
-playerBaseHealth;100;
-playerBaseDefence;10;refEnemyArmor при scale=1
-playerBaseSpeed (база incoming atk speed);1;playerBase.speed/100 → множитель
+playerBaseAttack;25;"базовая атака эталона; знаменатель scaleAttack"
+playerBaseHealth;100;"базовое HP эталона; знаменатель scaleHealth"
+playerBaseDefence;10;"базовая броня эталона; refEnemyArmor при scale=1"
+playerBaseSpeed (база incoming atk speed);1;playerBase.speed/100 — множитель скорости входящих ударов
 ;;
-—— КОНФИГ СИЛЫ (config.ts) ——;;
-averageExtraTargets;1,5;
-opponentScaleAttackWeight;0,45;
-opponentScaleHealthWeight;0,35;
-opponentScaleArmorWeight;0,2;
-critEfficiency;0,65;
-attackSpeedEfficiency;0,85;
-hitImpactEfficiency;0,45;
-minHitImpactMultiplier;0,85;
-maxHitImpactMultiplier;1,6;
-areaEfficiency;1;
-lifestealEfficiency;0,35;
-thornsEfficiency;1,3;
-defensePowerWeight;0,45;
-offensePowerWeight;0,55;
+—— КОНФИГ СИЛЫ (config.ts) ——;;подсказки = комментарии в config.ts
+averageExtraTargets;1,5;среднее число доп. целей для массовой атаки в силе
+opponentScaleAttackWeight;0,45;вес атаки в S (масштаб эталонного противника)
+opponentScaleHealthWeight;0,35;вес здоровья в S
+opponentScaleArmorWeight;0,2;вес брони в S
+critEfficiency;0,65;доля крит-урона, учитываемая в expected hit
+attackSpeedEfficiency;0,85;эффективность скорости атаки выше 100%
+hitImpactEfficiency;0,45;чувствительность hit impact к размеру удара
+minHitImpactMultiplier;0,85;нижняя граница множителя удара
+maxHitImpactMultiplier;1,6;верхняя граница множителя удара
+areaEfficiency;1;эффективность урона по области в effective DPS
+lifestealEfficiency;0,35;доля main DPS × lifesteal, идущая в sustain
+thornsEfficiency;1,3;множитель ценности шипов в pressure
+sustainEffectiveHealthDivisor;20;EHP в знаменателе sustain: слабее, чем DPS
+defensePowerWeight;0,45;степень EHP в итоговой силе
+offensePowerWeight;0,55;степень pressure в итоговой силе
 ;;
 —— НОРМАЛИЗАЦИЯ (как normalizeStats) ——;;
 atk;"=MAX(0;B6)";
@@ -49,31 +50,31 @@ area;"=MIN(1;MAX(0;B13/100))";
 th;"=MAX(0;B14/100)";
 ;;
 —— РАСЧЁТ ——;;сверка с Node (колонка C)
-scaleAttack (герой / эталон);=B41/$B$19;
-scaleHealth (герой / эталон);=B42/$B$20;
-scaleArmor (герой / эталон);=B43/$B$21;
-opponentScale S (взвеш. геом. среднее);"=POWER(B52;$B$26)*POWER(B53;$B$27)*POWER(B54;$B$28)";2,3544
-oppAttack (эталон × S);=$B$19*B55;58,859940245460265
-oppHealth (эталон × S);=$B$20*B55;235,43976098184106
-oppArmor (эталон × S);=$B$21*B55;23,543976098184103
-refIncoming (удар по тебе);=B56;58,8599
-refEnemyArmor;=B58;23,544
-incomingOnYou (после своей брони);"=IF((B59)<=0;0;MAX((B59)*$B$17;(B59)*$B$16/($B$16+MAX(0;B43)/(B59))))";50,3122
-effectiveHealth (EHP);=B42*B59/B61;233,979
-mainHitAfterArmor;"=IF((B41)<=0;0;MAX((B41)*$B$17;(B41)*$B$16/($B$16+MAX(0;B60)/(B41))))";
-expectedHitDamage;=B63*(1+B45*(B46-1)*$B$29);
-effectiveAttackSpeed;"=MAX(1E-9;1+(B44-1)*$B$30)";
-dps (main, без hitImpact);=B64*B65;53,0598
-hitImpactRatio;=B64/B59;
-hitImpactMultiplier;"=MIN($B$33;MAX($B$32;1+$B$31*(B67-1)))";
-weightedDps;=B66*B68;
-areaHitAfterArmor;"=IF((B41*B48)<=0;0;MAX((B41*B48)*$B$17;(B41*B48)*$B$16/($B$16+MAX(0;B60)/(B41*B48))))";
-areaDps;=B70*$B$25*$B$34*B65;
-effectiveDps;=B69+B71;
-sustain (только от main dps);=B66*B47*$B$35;
-sustainMultiplier;"=1+B73/MAX(1;B72+B62/20)";
-thornsRaw;=B43*B49;
-thornsAfterArmor;"=IF((B75)<=0;0;MAX((B75)*$B$17;(B75)*$B$16/($B$16+MAX(0;B60)/(B75))))";
-thornsValue;=B76*$B$22*$B$36;
-pressure;=B72+B77;
-СИЛА (power);"=POWER(B62;$B$37)*POWER(B78;$B$38)*B74";100,9059
+scaleAttack (герой / эталон);=B42/$B$19;
+scaleHealth (герой / эталон);=B43/$B$20;
+scaleArmor (герой / эталон);=B44/$B$21;
+opponentScale S (взвеш. геом. среднее);"=POWER(B53;$B$26)*POWER(B54;$B$27)*POWER(B55;$B$28)";2,3544
+oppAttack (эталон × S);=$B$19*B56;58,859940245460265
+oppHealth (эталон × S);=$B$20*B56;235,43976098184106
+oppArmor (эталон × S);=$B$21*B56;23,543976098184103
+refIncoming (удар по тебе);=B57;58,8599
+refEnemyArmor;=B59;23,544
+incomingOnYou (после своей брони);"=IF((B60)<=0;0;MAX((B60)*$B$17;(B60)*$B$16/($B$16+MAX(0;B44)/(B60))))";50,3122
+effectiveHealth (EHP);=B43*B60/B62;233,979
+mainHitAfterArmor;"=IF((B42)<=0;0;MAX((B42)*$B$17;(B42)*$B$16/($B$16+MAX(0;B61)/(B42))))";
+expectedHitDamage;=B64*(1+B46*(B47-1)*$B$29);
+effectiveAttackSpeed;"=MAX(1E-9;1+(B45-1)*$B$30)";
+dps (main, без hitImpact);=B65*B66;53,0598
+hitImpactRatio;=B65/B60;
+hitImpactMultiplier;"=MIN($B$33;MAX($B$32;1+$B$31*(B68-1)))";
+weightedDps;=B67*B69;
+areaHitAfterArmor;"=IF((B42*B49)<=0;0;MAX((B42*B49)*$B$17;(B42*B49)*$B$16/($B$16+MAX(0;B61)/(B42*B49))))";
+areaDps;=B71*$B$25*$B$34*B66;
+effectiveDps;=B70+B72;
+sustain (только от main dps);=B67*B48*$B$35;
+sustainMultiplier;"=1+B74/MAX(1;B73+B63/$B$37)";
+thornsRaw;=B44*B50;
+thornsAfterArmor;"=IF((B76)<=0;0;MAX((B76)*$B$17;(B76)*$B$16/($B$16+MAX(0;B61)/(B76))))";
+thornsValue;=B77*$B$22*$B$36;
+pressure;=B73+B78;
+СИЛА (power);"=POWER(B63;$B$38)*POWER(B79;$B$39)*B75";100,9059
