@@ -1,0 +1,71 @@
+Параметр;Значение / формула;Сверка (код)
+DiceMaster — калькулятор силы;;
+"Импорт: Excel/Таблицы, локаль RU. Разделитель полей «;», в формулах «;» и дробная «,».";;
+;;
+—— ВВОД СТАТОВ (меняй значения) ——;;
+Attack;25;
+Health;100;
+Armor;10;
+Attack Speed, %;100;100 = базовая скорость
+Crit Chance, %;0;
+Crit Damage, %;150;150 = ×1,5 урона на крите
+Lifesteal, %;0;
+Mass Attack (area), %;0;
+Thorns, %;0;
+enemyArmorScale;1;масштаб брони врага в формуле силы
+;;
+—— КОНФИГ (из config.ts) ——;;
+armorDamageConstant;3;
+minDamageMultiplier;0,05;
+averageEnemyArmor;20;
+averageExtraTargets;1,5;
+averageIncomingAttackSpeed;1;
+referenceAttackWeight;0,65;
+referenceHealthWeight;0,3;
+referenceArmorWeight;0,05;
+referenceTargetTtk;8;
+expectedArmorToAttackRatio;0,6;
+critEfficiency;0,65;
+attackSpeedEfficiency;0,85;
+hitImpactEfficiency;0,45;
+minHitImpactMultiplier;0,85;
+maxHitImpactMultiplier;1,6;
+areaEfficiency;1;
+lifestealEfficiency;0,35;
+thornsEfficiency;1,3;
+defensePowerWeight;0,45;
+offensePowerWeight;0,55;
+;;
+—— НОРМАЛИЗАЦИЯ (как normalizeStats) ——;;
+atk;"=MAX(0;B6)";
+hp;"=MAX(1;B7)";
+arm;"=MAX(0;B8)";
+spd;"=MAX(0,05;B9/100)";
+critC;"=MIN(1;MAX(0;B10/100))";
+critD;"=MAX(1;B11/100)";
+ls;"=MIN(1;MAX(0;B12/100))";
+area;"=MIN(1;MAX(0;B13/100))";
+th;"=MAX(0;B14/100)";
+;;
+—— РАСЧЁТ ——;;check = Node calculatePower()
+refIncoming (удар по тебе);"=MAX(1E-9;B40*$B$23+B41/$B$26*$B$24+B42/$B$27*$B$25)";
+refEnemyArmor;=$B$20*B15;
+incomingOnYou (после своей брони);"=IF((B51)<=0;0;MAX((B51)*$B$19;(B51)*$B$18/($B$18+MAX(0;B42)/(B51))))";17,9598
+effectiveHealth (EHP);=B41*B51/B53;116
+mainHitAfterArmor;"=IF((B40)<=0;0;MAX((B40)*$B$19;(B40)*$B$18/($B$18+MAX(0;B52)/(B40))))";
+expectedHitDamage;=B55*(1+B44*(B45-1)*$B$28);
+effectiveAttackSpeed;"=MAX(1E-9;1+(B43-1)*$B$29)";
+dps (main, без hitImpact);=B56*B57;19,7368
+hitImpactRatio;=B56/B51;
+hitImpactMultiplier;"=MIN($B$32;MAX($B$31;1+$B$30*(B59-1)))";
+weightedDps;=B58*B60;
+areaHitAfterArmor;"=IF((B40*B47)<=0;0;MAX((B40*B47)*$B$19;(B40*B47)*$B$18/($B$18+MAX(0;B52)/(B40*B47))))";
+areaDps;=B62*$B$21*$B$33*B57;
+effectiveDps;=B61+B63;
+sustain (только от main dps);=B58*B46*$B$34;
+sustainMultiplier;"=1+B65/MAX(1;B64+B54/20)";
+thornsRaw;=B42*B48;
+thornsAfterArmor;"=IF((B67)<=0;0;MAX((B67)*$B$19;(B67)*$B$18/($B$18+MAX(0;B52)/(B67))))";
+thornsValue;=B68*$B$22*$B$35;
+pressure;=B64+B69;
+СИЛА (power);"=POWER(B54;$B$36)*POWER(B70;$B$37)*B66";43,2199
