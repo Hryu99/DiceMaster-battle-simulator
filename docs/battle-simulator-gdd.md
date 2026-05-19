@@ -486,6 +486,8 @@ power = effectiveHealth^0.4 * pressure^0.6 * sustainMultiplier
 
 ## Power Lab
 
+Подробный пошаговый план балансировки формулы после изменений коэффициентов: [power-formula-balance-plan.md](./power-formula-balance-plan.md).
+
 Power Lab - это отдельная страница для проверки точности формулы силы на большом числе 1v1 боев.
 
 Она открывается из шапки симулятора кнопкой `Power Lab`.
