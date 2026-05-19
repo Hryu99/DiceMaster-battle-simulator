@@ -3,7 +3,6 @@ export const BATTLE_CONFIG = {
   minDamageMultiplier: 0.05,
   power: {
     averageExtraTargets: 1.5,
-    averageIncomingAttackSpeed: 1,
     referenceAttackWeight: 0.65,
     referenceHealthWeight: 0.3,
     referenceArmorWeight: 0.05,

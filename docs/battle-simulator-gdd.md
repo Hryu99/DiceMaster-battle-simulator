@@ -430,7 +430,7 @@ sustain = mainDps * lifesteal * 0.5
 ```text
 thornsRawDamage = armor * thorns
 thornsAfterArmor = damageAfterArmor(thornsRawDamage, referenceEnemyArmor)
-thornsValue = thornsAfterArmor * averageIncomingAttackSpeed * 1.3
+thornsValue = thornsAfterArmor * (playerBase.speed / 100) * 1.3
 ```
 
 В этой оценке шипы считаются процентом от брони владельца, затем уменьшаются средней броней условного атакующего. Они не срабатывают от массовых атак.

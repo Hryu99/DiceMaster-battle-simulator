@@ -17,8 +17,8 @@ Thorns, %;0;
 armorDamageConstant;3;
 minDamageMultiplier;0,05;
 playerBaseDefence (база refEnemyArmor);10;из gearConfig.playerBase.defence
+playerBaseSpeed (база incoming atk speed);1;playerBase.speed/100 → множитель (100% = 1)
 averageExtraTargets;1,5;
-averageIncomingAttackSpeed;1;
 referenceAttackWeight;0,65;
 referenceHealthWeight;0,3;
 referenceArmorWeight;0,05;
@@ -59,12 +59,12 @@ hitImpactRatio;=B55/B50;
 hitImpactMultiplier;"=MIN($B$31;MAX($B$30;1+$B$29*(B58-1)))";
 weightedDps;=B57*B59;
 areaHitAfterArmor;"=IF((B39*B46)<=0;0;MAX((B39*B46)*$B$18;(B39*B46)*$B$17/($B$17+MAX(0;B51)/(B39*B46))))";
-areaDps;=B61*$B$20*$B$32*B56;
+areaDps;=B61*$B$21*$B$32*B56;
 effectiveDps;=B60+B62;
 sustain (только от main dps);=B57*B45*$B$33;
 sustainMultiplier;"=1+B64/MAX(1;B63+B53/20)";
 thornsRaw;=B41*B47;
 thornsAfterArmor;"=IF((B66)<=0;0;MAX((B66)*$B$18;(B66)*$B$17/($B$17+MAX(0;B51)/(B66))))";
-thornsValue;=B67*$B$21*$B$34;
+thornsValue;=B67*$B$20*$B$34;
 pressure;=B63+B68;
 СИЛА (power);"=POWER(B53;$B$35)*POWER(B69;$B$36)*B65";47,2299

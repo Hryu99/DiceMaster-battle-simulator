@@ -102,8 +102,13 @@ function buildRows(): CsvRow[] {
     'из gearConfig.playerBase.defence',
     'cfgPlayerBaseDef',
   )
+  addRow(
+    'playerBaseSpeed (база incoming atk speed)',
+    n(GEAR_CONFIG.playerBase.speed / 100),
+    'playerBase.speed/100 → множитель (100% = 1)',
+    'cfgPlayerBaseSpd',
+  )
   addRow('averageExtraTargets', n(p.averageExtraTargets), '', 'cfgAvgExtraTargets')
-  addRow('averageIncomingAttackSpeed', n(p.averageIncomingAttackSpeed), '', 'cfgAvgIncAtkSpd')
   addRow('referenceAttackWeight', n(p.referenceAttackWeight), '', 'cfgRefAtkW')
   addRow('referenceHealthWeight', n(p.referenceHealthWeight), '', 'cfgRefHpW')
   addRow('referenceArmorWeight', n(p.referenceArmorWeight), '', 'cfgRefArmW')
@@ -199,7 +204,7 @@ function buildRows(): CsvRow[] {
   addRow('thornsAfterArmor', armorFormula(b(R.thornsRaw), R.refEnemyArmor), '', 'thornsHit')
   addRow(
     'thornsValue',
-    `=${b(R.thornsHit)}*${$(R.cfgAvgIncAtkSpd)}*${$(R.cfgThornsEff)}`,
+    `=${b(R.thornsHit)}*${$(R.cfgPlayerBaseSpd)}*${$(R.cfgThornsEff)}`,
     '',
     'thornsValue',
   )

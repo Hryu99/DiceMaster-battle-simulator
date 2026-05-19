@@ -49,7 +49,8 @@ export function calculatePower(statsInput: CombatantStats, options: PowerCalcula
   const sustainMultiplier = 1 + sustain / Math.max(1, effectiveDps + effectiveHealth / 20)
   const thornsRawDamage = stats.armor * stats.thorns
   const thornsAfterArmor = calculateArmorReducedDamage(thornsRawDamage, referenceEnemyArmor)
-  const thornsValue = thornsAfterArmor * powerConfig.averageIncomingAttackSpeed * powerConfig.thornsEfficiency
+  const thornsValue =
+    thornsAfterArmor * getReferenceIncomingAttackSpeedBase() * powerConfig.thornsEfficiency
   const pressure = effectiveDps + thornsValue
   const power =
     Math.pow(effectiveHealth, powerConfig.defensePowerWeight) *
@@ -78,6 +79,11 @@ function calculateEffectiveAttackSpeed(attackSpeed: number): number {
 /** Базовая броня «среднего врага» = playerBase.defence из gearConfig. */
 export function getReferenceEnemyArmorBase(): number {
   return GEAR_CONFIG.playerBase.defence
+}
+
+/** Базовая скорость входящих атак для шипов = playerBase.speed (как normalizeStats: % → множитель). */
+export function getReferenceIncomingAttackSpeedBase(): number {
+  return Math.max(0.05, GEAR_CONFIG.playerBase.speed / 100)
 }
 
 export function calculateReferenceEnemyArmor(enemyArmorScale = 1): number {

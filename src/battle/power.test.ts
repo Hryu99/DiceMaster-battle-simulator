@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { BATTLE_CONFIG } from './config'
 import { calculateArmorReducedDamage } from './damage'
-import { calculatePower, getReferenceEnemyArmorBase } from './power'
+import {
+  calculatePower,
+  getReferenceEnemyArmorBase,
+  getReferenceIncomingAttackSpeedBase,
+} from './power'
 import type { CombatantStats } from './types'
 
 const baseStats: CombatantStats = {
@@ -181,7 +185,7 @@ describe('calculatePower', () => {
 
     expect(breakdown.thornsValue).toBeCloseTo(
       calculateArmorReducedDamage(expectedThornsRawDamage, getReferenceEnemyArmorBase()) *
-        BATTLE_CONFIG.power.averageIncomingAttackSpeed *
+        getReferenceIncomingAttackSpeedBase() *
         BATTLE_CONFIG.power.thornsEfficiency,
     )
   })
