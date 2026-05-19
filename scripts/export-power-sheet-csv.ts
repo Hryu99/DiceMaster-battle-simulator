@@ -91,7 +91,6 @@ function buildRows(): CsvRow[] {
   addRow('Lifesteal, %', '0', '', 'lifesteal')
   addRow('Mass Attack (area), %', '0', '', 'area')
   addRow('Thorns, %', '0', '', 'thorns')
-  addRow('enemyArmorScale', '1', 'масштаб брони врага в формуле силы', 'enemyScale')
   addRow('', '', '')
 
   addRow('—— КОНФИГ (из config.ts) ——', '', '')
@@ -141,7 +140,7 @@ function buildRows(): CsvRow[] {
     '',
     'refIncoming',
   )
-  addRow('refEnemyArmor', `=${$(R.cfgPlayerBaseDef)}*${b(R.enemyScale)}`, '', 'refEnemyArmor')
+  addRow('refEnemyArmor', `=${$(R.cfgPlayerBaseDef)}`, 'enemyArmorScale=1 в коде', 'refEnemyArmor')
   addRow(
     'incomingOnYou (после своей брони)',
     armorFormula(b(R.refIncoming), R.normArm),
