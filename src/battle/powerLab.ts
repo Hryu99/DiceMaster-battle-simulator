@@ -1,5 +1,5 @@
 import { BATTLE_CONFIG } from './config'
-import { calculatePower, calculateReferenceEnemyArmor, calculateReferenceIncomingHit } from './power'
+import { calculatePower, getScaledReferenceOpponent } from './power'
 import { SeededRandom, type RandomSource } from './rng'
 import { runSimulations } from './simulator'
 import type { Combatant, CombatantStats, PowerBreakdown, Team } from './types'
@@ -74,8 +74,8 @@ export interface PowerLabOverallSummary {
   averagePower: number
   averageWinRate: number
   diagnostics: PowerLabDiagnostics
-  armorToReferenceEnemyArmorRatio: number
-  attackToReferenceEnemyArmorRatio: number
+  armorToOpponentArmorRatio: number
+  attackToOpponentArmorRatio: number
 }
 
 export interface PowerLabDiagnostics {
@@ -89,8 +89,8 @@ export interface PowerLabDiagnostics {
   sustain: number
   hitImpactMultiplier: number
   hitToReferenceRatio: number
-  referenceIncomingHit: number
-  referenceEnemyArmor: number
+  opponentAttack: number
+  opponentArmor: number
   effectiveHealthToDpsRatio: number
   dpsToEffectiveHealthRatio: number
   thornsValue: number
@@ -262,13 +262,13 @@ export function summarizeOverall(builds: PowerLabBuildResult[]): PowerLabOverall
     averagePower: builds.length > 0 ? totalPower / builds.length : 0,
     averageWinRate: builds.length > 0 ? totalWinRate / builds.length : 0,
     diagnostics: averagedDiagnostics,
-    armorToReferenceEnemyArmorRatio:
-      averagedDiagnostics.referenceEnemyArmor > 0
-        ? averagedDiagnostics.armor / averagedDiagnostics.referenceEnemyArmor
+    armorToOpponentArmorRatio:
+      averagedDiagnostics.opponentArmor > 0
+        ? averagedDiagnostics.armor / averagedDiagnostics.opponentArmor
         : 0,
-    attackToReferenceEnemyArmorRatio:
-      averagedDiagnostics.referenceEnemyArmor > 0
-        ? averagedDiagnostics.attack / averagedDiagnostics.referenceEnemyArmor
+    attackToOpponentArmorRatio:
+      averagedDiagnostics.opponentArmor > 0
+        ? averagedDiagnostics.attack / averagedDiagnostics.opponentArmor
         : 0,
   }
 }
@@ -277,8 +277,7 @@ export function createPowerLabDiagnostics(
   stats: CombatantStats,
   breakdown: PowerBreakdown,
 ): PowerLabDiagnostics {
-  const referenceIncomingHit = calculateReferenceIncomingHit(stats)
-  const referenceEnemyArmor = calculateReferenceEnemyArmor(stats)
+  const opponent = getScaledReferenceOpponent(stats)
 
   return {
     attack: stats.attack,
@@ -290,9 +289,9 @@ export function createPowerLabDiagnostics(
     effectiveHealth: breakdown.effectiveHealth,
     sustain: breakdown.sustain,
     hitImpactMultiplier: breakdown.hitImpactMultiplier,
-    hitToReferenceRatio: breakdown.expectedHitDamage / Math.max(referenceIncomingHit, Number.EPSILON),
-    referenceIncomingHit,
-    referenceEnemyArmor,
+    hitToReferenceRatio: breakdown.expectedHitDamage / Math.max(opponent.attack, Number.EPSILON),
+    opponentAttack: opponent.attack,
+    opponentArmor: opponent.armor,
     effectiveHealthToDpsRatio: breakdown.effectiveHealth / Math.max(breakdown.dps, Number.EPSILON),
     dpsToEffectiveHealthRatio: breakdown.dps / Math.max(breakdown.effectiveHealth, Number.EPSILON),
     thornsValue: breakdown.thornsValue,
@@ -327,8 +326,8 @@ function createEmptyDiagnostics(): PowerLabDiagnostics {
     sustain: 0,
     hitImpactMultiplier: 0,
     hitToReferenceRatio: 0,
-    referenceIncomingHit: 0,
-    referenceEnemyArmor: 0,
+    opponentAttack: 0,
+    opponentArmor: 0,
     effectiveHealthToDpsRatio: 0,
     dpsToEffectiveHealthRatio: 0,
     thornsValue: 0,
@@ -346,8 +345,8 @@ function addDiagnostics(target: PowerLabDiagnostics, source: PowerLabDiagnostics
   target.sustain += source.sustain
   target.hitImpactMultiplier += source.hitImpactMultiplier
   target.hitToReferenceRatio += source.hitToReferenceRatio
-  target.referenceIncomingHit += source.referenceIncomingHit
-  target.referenceEnemyArmor += source.referenceEnemyArmor
+  target.opponentAttack += source.opponentAttack
+  target.opponentArmor += source.opponentArmor
   target.effectiveHealthToDpsRatio += source.effectiveHealthToDpsRatio
   target.dpsToEffectiveHealthRatio += source.dpsToEffectiveHealthRatio
   target.thornsValue += source.thornsValue
@@ -367,8 +366,8 @@ function divideDiagnostics(diagnostics: PowerLabDiagnostics, divisor: number): P
     sustain: diagnostics.sustain / safeDivisor,
     hitImpactMultiplier: diagnostics.hitImpactMultiplier / safeDivisor,
     hitToReferenceRatio: diagnostics.hitToReferenceRatio / safeDivisor,
-    referenceIncomingHit: diagnostics.referenceIncomingHit / safeDivisor,
-    referenceEnemyArmor: diagnostics.referenceEnemyArmor / safeDivisor,
+    opponentAttack: diagnostics.opponentAttack / safeDivisor,
+    opponentArmor: diagnostics.opponentArmor / safeDivisor,
     effectiveHealthToDpsRatio: diagnostics.effectiveHealthToDpsRatio / safeDivisor,
     dpsToEffectiveHealthRatio: diagnostics.dpsToEffectiveHealthRatio / safeDivisor,
     thornsValue: diagnostics.thornsValue / safeDivisor,

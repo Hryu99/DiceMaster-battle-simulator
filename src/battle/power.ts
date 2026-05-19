@@ -36,19 +36,20 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
 export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
   const stats = normalizeStats(statsInput)
   const powerConfig = BATTLE_CONFIG.power
-  const referenceIncomingHit = calculateReferenceIncomingHit(stats)
-  const referenceEnemyArmor = calculateReferenceEnemyArmor(stats)
-  const incomingDamageAfterArmor = calculateArmorReducedDamage(referenceIncomingHit, stats.armor)
+  const opponent = getScaledReferenceOpponent(statsInput)
+  const opponentAttack = Math.max(Number.EPSILON, opponent.attack)
+  const opponentArmor = opponent.armor
+  const incomingDamageAfterArmor = calculateArmorReducedDamage(opponentAttack, stats.armor)
   const effectiveHealth =
-    stats.health * (referenceIncomingHit / Math.max(incomingDamageAfterArmor, Number.EPSILON))
-  const baseHitAfterArmor = calculateArmorReducedDamage(stats.attack, referenceEnemyArmor)
+    stats.health * (opponentAttack / Math.max(incomingDamageAfterArmor, Number.EPSILON))
+  const baseHitAfterArmor = calculateArmorReducedDamage(stats.attack, opponentArmor)
   const expectedHitDamage =
     baseHitAfterArmor * (1 + stats.critChance * (stats.critDamage - 1) * powerConfig.critEfficiency)
   const effectiveAttackSpeed = calculateEffectiveAttackSpeed(stats.attackSpeed)
   const dps = expectedHitDamage * effectiveAttackSpeed
-  const hitImpactMultiplier = calculateHitImpactMultiplier(expectedHitDamage, referenceIncomingHit)
+  const hitImpactMultiplier = calculateHitImpactMultiplier(expectedHitDamage, opponentAttack)
   const weightedDps = dps * hitImpactMultiplier
-  const areaHitAfterArmor = calculateArmorReducedDamage(stats.attack * stats.areaAttack, referenceEnemyArmor)
+  const areaHitAfterArmor = calculateArmorReducedDamage(stats.attack * stats.areaAttack, opponentArmor)
   const areaDps =
     areaHitAfterArmor * powerConfig.averageExtraTargets * powerConfig.areaEfficiency * effectiveAttackSpeed
   const effectiveDps = weightedDps + areaDps
@@ -59,7 +60,7 @@ export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
     sustain /
     Math.max(1, effectiveDps + effectiveHealth / powerConfig.sustainEffectiveHealthDivisor)
   const thornsRawDamage = stats.armor * stats.thorns
-  const thornsAfterArmor = calculateArmorReducedDamage(thornsRawDamage, referenceEnemyArmor)
+  const thornsAfterArmor = calculateArmorReducedDamage(thornsRawDamage, opponentArmor)
   const thornsValue =
     thornsAfterArmor * getReferenceIncomingAttackSpeedBase() * powerConfig.thornsEfficiency
   const pressure = effectiveDps + thornsValue
@@ -87,23 +88,14 @@ function calculateEffectiveAttackSpeed(attackSpeed: number): number {
   )
 }
 
-/** Броня эталона без scale героя (playerBase.defence). */
-export function getReferenceEnemyArmorBase(): number {
-  return GEAR_CONFIG.playerBase.defence
-}
-
 /** Базовая скорость входящих атак для шипов = playerBase.speed (как normalizeStats: % → множитель). */
 export function getReferenceIncomingAttackSpeedBase(): number {
   return Math.max(0.05, GEAR_CONFIG.playerBase.speed / 100)
 }
 
-export function calculateReferenceEnemyArmor(statsInput: CombatantStats): number {
-  return getScaledReferenceOpponent(statsInput).armor
-}
-
-function calculateHitImpactMultiplier(expectedHitDamage: number, referenceIncomingHit: number): number {
+function calculateHitImpactMultiplier(expectedHitDamage: number, opponentAttack: number): number {
   const powerConfig = BATTLE_CONFIG.power
-  const hitImpactRatio = expectedHitDamage / Math.max(referenceIncomingHit, Number.EPSILON)
+  const hitImpactRatio = expectedHitDamage / Math.max(opponentAttack, Number.EPSILON)
   const multiplier = 1 + powerConfig.hitImpactEfficiency * (hitImpactRatio - 1)
 
   return clamp(multiplier, powerConfig.minHitImpactMultiplier, powerConfig.maxHitImpactMultiplier)
@@ -150,11 +142,6 @@ export function getScaledReferenceOpponent(statsInput: CombatantStats): ScaledRe
     health: base.health * scale,
     armor: base.defence * scale,
   }
-}
-
-/** Условный входящий удар = атака эталонного противника (oppAttack). */
-export function calculateReferenceIncomingHit(statsInput: CombatantStats): number {
-  return Math.max(Number.EPSILON, getScaledReferenceOpponent(statsInput).attack)
 }
 
 export function calculateCombatantPower(combatant: Combatant): number {

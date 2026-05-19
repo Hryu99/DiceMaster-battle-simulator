@@ -209,8 +209,8 @@ function PowerLabReportPanel({ report }: { report: PowerLabReport }) {
         <LabMetric label="Отобрано билдов" value={String(report.builds.length)} />
         <LabMetric label="Боев всего" value={String(report.builds.reduce((total, build) => total + build.battles, 0) / 2)} />
         <LabMetric label="Avg power" value={formatNumber(report.overallSummary.averagePower, 1)} />
-        <LabMetric label="Avg armor / ref armor" value={formatNumber(report.overallSummary.armorToReferenceEnemyArmorRatio, 2)} />
-        <LabMetric label="Avg attack / ref armor" value={formatNumber(report.overallSummary.attackToReferenceEnemyArmorRatio, 2)} />
+        <LabMetric label="Avg armor / opp armor" value={formatNumber(report.overallSummary.armorToOpponentArmorRatio, 2)} />
+        <LabMetric label="Avg attack / opp armor" value={formatNumber(report.overallSummary.attackToOpponentArmorRatio, 2)} />
       </div>
 
       <h2>Baseline выборки</h2>
@@ -337,7 +337,7 @@ function DiagnosticsTable({
   ratios,
 }: {
   diagnostics: PowerLabReport['overallSummary']['diagnostics']
-  ratios: { armorToReferenceEnemyArmorRatio: number; attackToReferenceEnemyArmorRatio: number }
+  ratios: { armorToOpponentArmorRatio: number; attackToOpponentArmorRatio: number }
 }) {
   return (
     <div className="power-lab-table-wrap">
@@ -347,9 +347,9 @@ function DiagnosticsTable({
             <th>Avg A</th>
             <th>Avg HP</th>
             <th>Avg Arm</th>
-            <th>Ref Arm</th>
-            <th>Arm/Ref Arm</th>
-            <th>A/Ref Arm</th>
+            <th>Opp Arm</th>
+            <th>Arm/Opp</th>
+            <th>A/Opp Arm</th>
             <th>Hit/Ref</th>
             <th>Hit x</th>
             <th>EHP</th>
@@ -363,9 +363,9 @@ function DiagnosticsTable({
             <td>{formatNumber(diagnostics.attack, 1)}</td>
             <td>{formatNumber(diagnostics.health, 1)}</td>
             <td>{formatNumber(diagnostics.armor, 1)}</td>
-            <td>{formatNumber(diagnostics.referenceEnemyArmor, 1)}</td>
-            <td>{formatNumber(ratios.armorToReferenceEnemyArmorRatio, 2)}</td>
-            <td>{formatNumber(ratios.attackToReferenceEnemyArmorRatio, 2)}</td>
+            <td>{formatNumber(diagnostics.opponentArmor, 1)}</td>
+            <td>{formatNumber(ratios.armorToOpponentArmorRatio, 2)}</td>
+            <td>{formatNumber(ratios.attackToOpponentArmorRatio, 2)}</td>
             <td>{formatNumber(diagnostics.hitToReferenceRatio, 2)}</td>
             <td>{formatNumber(diagnostics.hitImpactMultiplier, 2)}</td>
             <td>{formatNumber(diagnostics.effectiveHealth, 1)}</td>

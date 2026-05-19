@@ -16,8 +16,6 @@ import { GEAR_CONFIG } from '../src/battle/gear/gearConfig.ts'
 import { calculateArmorReducedDamage } from '../src/battle/damage.ts'
 import {
   calculatePower,
-  calculateReferenceEnemyArmor,
-  calculateReferenceIncomingHit,
   getReferenceOpponentScale,
   getScaledReferenceOpponent,
 } from '../src/battle/power.ts'
@@ -150,7 +148,7 @@ function buildRows(): CsvRow[] {
   addRow(
     'playerBaseDefence',
     n(GEAR_CONFIG.playerBase.defence),
-    'базовая броня эталона; refEnemyArmor при scale=1',
+    'базовая броня эталона; знаменатель scaleArmor, = oppArmor при S=1',
     'cfgPlayerBaseDef',
   )
   addRow(
@@ -258,18 +256,16 @@ function buildRows(): CsvRow[] {
   )
   addRow('oppHealth (эталон × S)', `=${$(R.cfgPlayerBaseHp)}*${b(R.oppScale)}`, 'playerBase.health × S', 'oppHp')
   addRow('oppArmor (эталон × S)', `=${$(R.cfgPlayerBaseDef)}*${b(R.oppScale)}`, 'playerBase.defence × S', 'oppArm')
-  addRow('refIncoming (удар по тебе)', `=${b(R.oppAtk)}`, '= oppAttack', 'refIncoming')
-  addRow('refEnemyArmor', `=${b(R.oppArm)}`, '= oppArmor', 'refEnemyArmor')
   addRow(
     'incomingOnYou (после своей брони)',
-    armorFormula(b(R.refIncoming), R.normArm),
-    '',
+    armorFormula(b(R.oppAtk), R.normArm),
+    'урон oppAttack по твоей броне',
     'incomingOnYou',
   )
-  addRow('effectiveHealth (EHP)', `=${b(R.normHp)}*${b(R.refIncoming)}/${b(R.incomingOnYou)}`, '', 'ehp')
+  addRow('effectiveHealth (EHP)', `=${b(R.normHp)}*${b(R.oppAtk)}/${b(R.incomingOnYou)}`, '', 'ehp')
   addRow(
     'mainHitAfterArmor',
-    armorFormula(b(R.normAtk), R.refEnemyArmor),
+    armorFormula(b(R.normAtk), R.oppArm),
     '',
     'mainHit',
   )
@@ -286,7 +282,7 @@ function buildRows(): CsvRow[] {
     'effSpd',
   )
   addRow('dps (main, без hitImpact)', `=${b(R.expectedHit)}*${b(R.effSpd)}`, '', 'dps')
-  addRow('hitImpactRatio', `=${b(R.expectedHit)}/${b(R.refIncoming)}`, '', 'hitImpactRatio')
+  addRow('hitImpactRatio', `=${b(R.expectedHit)}/${b(R.oppAtk)}`, 'expectedHit / oppAttack', 'hitImpactRatio')
   addRow(
     'hitImpactMultiplier',
     `=MIN(${$(R.cfgMaxHitImpact)};MAX(${$(R.cfgMinHitImpact)};1+${$(R.cfgHitImpactEff)}*(${b(R.hitImpactRatio)}-1)))`,
@@ -296,7 +292,7 @@ function buildRows(): CsvRow[] {
   addRow('weightedDps', `=${b(R.dps)}*${b(R.hitImpactMult)}`, '', 'weightedDps')
   addRow(
     'areaHitAfterArmor',
-    armorFormula(`${b(R.normAtk)}*${b(R.normArea)}`, R.refEnemyArmor),
+    armorFormula(`${b(R.normAtk)}*${b(R.normArea)}`, R.oppArm),
     '',
     'areaHit',
   )
@@ -315,7 +311,7 @@ function buildRows(): CsvRow[] {
     'sustainMult',
   )
   addRow('thornsRaw', `=${b(R.normArm)}*${b(R.normTh)}`, '', 'thornsRaw')
-  addRow('thornsAfterArmor', armorFormula(b(R.thornsRaw), R.refEnemyArmor), '', 'thornsHit')
+  addRow('thornsAfterArmor', armorFormula(b(R.thornsRaw), R.oppArm), '', 'thornsHit')
   addRow(
     'thornsValue',
     `=${b(R.thornsHit)}*${$(R.cfgPlayerBaseSpd)}*${$(R.cfgThornsEff)}`,
@@ -339,9 +335,9 @@ function statsFromSheetDefaults(): CombatantStats {
 
 function expectedIncomingOnYou(): number {
   const stats = statsFromSheetDefaults()
-  const refIncoming = calculateReferenceIncomingHit(stats)
+  const opponent = getScaledReferenceOpponent(stats)
 
-  return calculateArmorReducedDamage(refIncoming, stats.armor)
+  return calculateArmorReducedDamage(opponent.attack, stats.armor)
 }
 
 function attachValidationChecks(): void {
@@ -349,8 +345,6 @@ function attachValidationChecks(): void {
   const breakdown = calculatePower(stats)
   const incoming = expectedIncomingOnYou()
   const opponent = getScaledReferenceOpponent(stats)
-  const refIncoming = calculateReferenceIncomingHit(stats)
-
   const defaultScale = getReferenceOpponentScale(stats)
 
   for (const row of rows) {
@@ -365,12 +359,6 @@ function attachValidationChecks(): void {
     }
     if (row[0] === 'oppArmor (эталон × S)') {
       row[2] = n(opponent.armor)
-    }
-    if (row[0] === 'refIncoming (удар по тебе)') {
-      row[2] = n(Number(refIncoming.toFixed(4)))
-    }
-    if (row[0] === 'refEnemyArmor') {
-      row[2] = n(Number(calculateReferenceEnemyArmor(stats).toFixed(4)))
     }
     if (row[0] === 'СИЛА (power)') {
       row[2] = n(Number(breakdown.power.toFixed(4)))
@@ -403,7 +391,7 @@ function main(): void {
     `Пример (${DEFAULT_SHEET_HERO_STATS.attack}/${DEFAULT_SHEET_HERO_STATS.health}/${DEFAULT_SHEET_HERO_STATS.armor}): power ≈ ${n(Number(examplePower.toFixed(2)))}`,
   )
   console.log(
-    `Ключевые строки: refIncoming B${R.refIncoming}, incomingOnYou B${R.incomingOnYou}, EHP B${R.ehp}, СИЛА B${R.power}`,
+    `Ключевые строки: oppAttack B${R.oppAtk}, incomingOnYou B${R.incomingOnYou}, EHP B${R.ehp}, СИЛА B${R.power}`,
   )
   console.log(`incomingOnYou (код) ≈ ${n(Number(expectedIncomingOnYou().toFixed(2)))} — должно совпасть с B${R.incomingOnYou}`)
 }

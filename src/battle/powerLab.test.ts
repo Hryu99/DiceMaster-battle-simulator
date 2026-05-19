@@ -41,7 +41,7 @@ describe('power lab', () => {
 
     expect(build.diagnostics.attack).toBe(build.combatant.stats.attack)
     expect(build.diagnostics.hitToReferenceRatio).toBeGreaterThan(0)
-    expect(build.diagnostics.referenceEnemyArmor).toBeGreaterThan(0)
+    expect(build.diagnostics.opponentArmor).toBeGreaterThan(0)
     expect(build.diagnostics.effectiveHealthToDpsRatio).toBeGreaterThan(0)
     expect(build.diagnostics.dpsToEffectiveHealthRatio).toBeGreaterThan(0)
   })
@@ -119,7 +119,7 @@ describe('power lab', () => {
     expect(report.tagSummaries[0]?.diagnostics.hitToReferenceRatio).toBeGreaterThan(0)
     expect(report.overallSummary.buildCount).toBe(report.builds.length)
     expect(report.overallSummary.diagnostics.armor).toBeGreaterThan(0)
-    expect(report.overallSummary.armorToReferenceEnemyArmorRatio).toBeGreaterThan(0)
+    expect(report.overallSummary.armorToOpponentArmorRatio).toBeGreaterThan(0)
     expect(report.overallSummary.diagnostics.effectiveHealthToDpsRatio).toBeGreaterThan(0)
   })
 
