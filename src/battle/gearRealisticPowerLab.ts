@@ -77,8 +77,6 @@ export const DEFAULT_GEAR_REALISTIC_POWER_LAB_CONFIG: GearRealisticPowerLabConfi
   fixedRarityId: null,
 }
 
-const BASE_POWER_FOR_ARMOR_SCALE = 150
-
 export function runGearRealisticPowerLab(
   overrides: Partial<GearRealisticPowerLabConfig> = {},
 ): GearRealisticPowerLabReport {
@@ -104,20 +102,18 @@ export function runGearRealisticPowerLab(
 
 export function generateGearBuilds(config: GearRealisticPowerLabConfig): GearRealisticBuild[] {
   const rng = new SeededRandom(config.seed)
-  const enemyArmorScale = getEnemyArmorScale(config)
-
   return Array.from({ length: config.candidateCount }, (_, index) => {
     const loadout = generateGearLoadout(rng, {
       fixedRarityId: config.fixedRarityId ?? undefined,
     })
     const stats = buildCombatantStatsFromGear(loadout)
-    const breakdown = calculatePower(stats, { enemyArmorScale })
+    const breakdown = calculatePower(stats)
 
     return {
       combatant: createGearCombatant(`gear-build-${index + 1}`, stats),
       power: breakdown.power,
       tags: tagBuild(stats),
-      diagnostics: createPowerLabDiagnostics(stats, breakdown, enemyArmorScale),
+      diagnostics: createPowerLabDiagnostics(stats, breakdown),
       loadout,
       gearTags: tagGearLoadout(loadout),
     }
@@ -166,14 +162,6 @@ function createGearCombatant(id: string, stats: CombatantStats): Combatant {
     name: `Билд ${id.replace('gear-build-', '')}`,
     stats,
   }
-}
-
-function getEnemyArmorScale(config: GearRealisticPowerLabConfig): number {
-  if (config.targetPower === null) {
-    return 1
-  }
-
-  return Math.max(Number.EPSILON, config.targetPower / BASE_POWER_FOR_ARMOR_SCALE)
 }
 
 function calculateLegendaryReferencePower(): number | null {

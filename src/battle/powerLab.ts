@@ -139,18 +139,17 @@ export function runPowerLab(overrides: Partial<PowerLabConfig> = {}): PowerLabRe
 export function generateRandomBuilds(config: PowerLabConfig): PowerLabBuild[] {
   const rng = new SeededRandom(config.seed)
   const tagScale = getStatScale(config)
-  const powerOptions = { enemyArmorScale: tagScale }
 
   return Array.from({ length: config.candidateCount }, (_, index) => {
     const stats = generateStats(config.statRanges, rng)
     const combatant = createLabCombatant(`build-${index + 1}`, stats)
-    const breakdown = calculatePower(stats, powerOptions)
+    const breakdown = calculatePower(stats)
 
     return {
       combatant,
       power: breakdown.power,
       tags: tagBuild(stats, tagScale),
-      diagnostics: createPowerLabDiagnostics(stats, breakdown, tagScale),
+      diagnostics: createPowerLabDiagnostics(stats, breakdown),
     }
   })
 }
@@ -277,10 +276,9 @@ export function summarizeOverall(builds: PowerLabBuildResult[]): PowerLabOverall
 export function createPowerLabDiagnostics(
   stats: CombatantStats,
   breakdown: PowerBreakdown,
-  enemyArmorScale = 1,
 ): PowerLabDiagnostics {
   const referenceIncomingHit = calculateReferenceIncomingHit(stats)
-  const referenceEnemyArmor = calculateReferenceEnemyArmor(stats, enemyArmorScale)
+  const referenceEnemyArmor = calculateReferenceEnemyArmor(stats)
 
   return {
     attack: stats.attack,

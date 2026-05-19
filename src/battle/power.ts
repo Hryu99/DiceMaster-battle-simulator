@@ -15,10 +15,6 @@ export interface ScaledReferenceOpponent {
   armor: number
 }
 
-export interface PowerCalculationOptions {
-  enemyArmorScale?: number
-}
-
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
@@ -37,12 +33,11 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
   }
 }
 
-export function calculatePower(statsInput: CombatantStats, options: PowerCalculationOptions = {}): PowerBreakdown {
+export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
   const stats = normalizeStats(statsInput)
   const powerConfig = BATTLE_CONFIG.power
-  const enemyArmorScale = Math.max(Number.EPSILON, options.enemyArmorScale ?? 1)
   const referenceIncomingHit = calculateReferenceIncomingHit(stats)
-  const referenceEnemyArmor = calculateReferenceEnemyArmor(stats, enemyArmorScale)
+  const referenceEnemyArmor = calculateReferenceEnemyArmor(stats)
   const incomingDamageAfterArmor = calculateArmorReducedDamage(referenceIncomingHit, stats.armor)
   const effectiveHealth =
     stats.health * (referenceIncomingHit / Math.max(incomingDamageAfterArmor, Number.EPSILON))
@@ -102,11 +97,8 @@ export function getReferenceIncomingAttackSpeedBase(): number {
   return Math.max(0.05, GEAR_CONFIG.playerBase.speed / 100)
 }
 
-export function calculateReferenceEnemyArmor(
-  statsInput: CombatantStats,
-  enemyArmorScale = 1,
-): number {
-  return getScaledReferenceOpponent(statsInput).armor * Math.max(Number.EPSILON, enemyArmorScale)
+export function calculateReferenceEnemyArmor(statsInput: CombatantStats): number {
+  return getScaledReferenceOpponent(statsInput).armor
 }
 
 function calculateHitImpactMultiplier(expectedHitDamage: number, referenceIncomingHit: number): number {

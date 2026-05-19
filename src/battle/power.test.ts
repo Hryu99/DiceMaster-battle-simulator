@@ -131,15 +131,6 @@ describe('calculatePower', () => {
     )
   })
 
-  it('can scale reference enemy armor for higher power tiers', () => {
-    const scaledStats = { ...baseStats, attack: 100, critChance: 0 }
-    const scaledBreakdown = calculatePower(scaledStats, { enemyArmorScale: 2 })
-
-    expect(scaledBreakdown.expectedHitDamage).toBeCloseTo(
-      calculateArmorReducedDamage(100, calculateReferenceEnemyArmor(scaledStats, 2)),
-    )
-  })
-
   it('rewards larger main hits relative to the reference incoming hit', () => {
     const heavyHit = calculatePower({
       ...baseStats,

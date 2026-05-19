@@ -39,7 +39,7 @@ npm run export:power-sheet
 | B | Ввод статов (Attack … Thorns), конфиг, дальше — формулы |
 | C | Подсказки к параметрам конфига; для блока «РАСЧЁТ» — сверка с Node (не обновляется после смены статов) |
 
-Меняй статы и блок конфига. `refEnemyArmor` = `playerBaseDefence` (как в симуляторе при `enemyArmorScale = 1`). Номера строк печатаются в консоли после `npm run export:power-sheet`.
+Меняй статы и блок конфига. `refEnemyArmor` = `playerBaseDefence × S` (как в `calculateReferenceEnemyArmor`). Номера строк печатаются в консоли после `npm run export:power-sheet`.
 
 ## Сверка с симулятором
 

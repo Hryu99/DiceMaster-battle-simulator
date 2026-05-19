@@ -344,10 +344,10 @@ effectiveHealth = health * referenceIncomingHit / incomingDamageAfterArmor
 referenceEnemyArmorBase = playerBase.defence
 ```
 
-В обычном расчете силы это значение из конфига героя. В Power Lab оно масштабируется единым множителем `enemyArmorScale` от целевой силы эксперимента, чтобы все билды одного тира считались против одинаковой условной брони врага.
+Эталонная броня врага для урона билда задаётся масштабом `S` от статов героя (см. эталонного противника выше):
 
 ```text
-referenceEnemyArmor = playerBase.defence * enemyArmorScale
+referenceEnemyArmor = playerBase.defence * S
 baseHitAfterArmor = damageAfterArmor(attack, referenceEnemyArmor)
 expectedHitDamage = baseHitAfterArmor * (1 + critChance * (critDamage - 1) * 0.85)
 ```
@@ -529,20 +529,7 @@ statScale = 1000 / 150 = 6.67
 
 Это значит, что диапазоны атаки, здоровья и брони станут примерно в 6.67 раза выше базовых.
 
-Тем же множителем масштабируется средняя броня условного врага в формуле силы:
-
-```text
-enemyArmorScale = targetPower / 150
-referenceEnemyArmor = playerBase.defence * enemyArmorScale
-```
-
-Например, если `playerBase.defence = 10`, то при целевой силе 500 Power Lab считает урон всех билдов против условной брони:
-
-```text
-10 * 500 / 150 = 33.3
-```
-
-Это значение одинаково для всех билдов внутри одного запуска Power Lab. Оно зависит от тира эксперимента, а не от характеристик конкретного билда.
+Условная броня врага для урона билда: `referenceEnemyArmor = playerBase.defence * S`, где `S` — взвешенное геометрическое среднее отношений статов героя к `playerBase` (см. выше). На разных тирах Power Lab меняются только **диапазоны генерации** atk/hp/arm.
 
 Процентные характеристики не масштабируются:
 
