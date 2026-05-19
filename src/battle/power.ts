@@ -3,6 +3,25 @@ import { calculateArmorReducedDamage } from './damage'
 import { GEAR_CONFIG } from './gear/gearConfig'
 import type { Combatant, CombatantStats, PowerBreakdown, Team } from './types'
 
+/** Веса угрозы в refIncoming; калиброваны на playerBase, в конфиг не выносятся. */
+const REFERENCE_INCOMING_WEIGHTS = {
+  attack: 0.65,
+  health: 0.3,
+  armor: 0.05,
+} as const
+
+export interface ReferenceStatScales {
+  attack: number
+  health: number
+  armor: number
+}
+
+export interface ScaledReferenceOpponent {
+  attack: number
+  health: number
+  armor: number
+}
+
 export interface PowerCalculationOptions {
   enemyArmorScale?: number
 }
@@ -98,17 +117,71 @@ function calculateHitImpactMultiplier(expectedHitDamage: number, referenceIncomi
   return clamp(multiplier, powerConfig.minHitImpactMultiplier, powerConfig.maxHitImpactMultiplier)
 }
 
-function calculateReferenceIncomingHit(stats: CombatantStats): number {
+function toReferenceStatScale(stats: CombatantStats): Pick<CombatantStats, 'attack' | 'health' | 'armor'> {
+  return {
+    attack: Math.max(0, stats.attack),
+    health: Math.max(1, stats.health),
+    armor: Math.max(0, stats.armor),
+  }
+}
+
+function getReferenceIncomingDerivations() {
+  const base = GEAR_CONFIG.playerBase
+  const baseAttack = Math.max(Number.EPSILON, base.attack)
+
+  return {
+    targetTtk: base.health / baseAttack,
+    armorToAttackRatio: base.defence / baseAttack,
+    weights: REFERENCE_INCOMING_WEIGHTS,
+  }
+}
+
+export function getReferenceStatScales(statsInput: CombatantStats): ReferenceStatScales {
+  const stats = toReferenceStatScale(statsInput)
+  const base = GEAR_CONFIG.playerBase
+
+  return {
+    attack: Math.max(Number.EPSILON, stats.attack / Math.max(Number.EPSILON, base.attack)),
+    health: Math.max(Number.EPSILON, stats.health / Math.max(1, base.health)),
+    armor: Math.max(Number.EPSILON, stats.armor / Math.max(Number.EPSILON, base.defence)),
+  }
+}
+
+/** Общий scale: взвешенное геометрическое среднее отношений герой / playerBase. */
+export function getReferenceOpponentScale(statsInput: CombatantStats): number {
+  const scales = getReferenceStatScales(statsInput)
   const powerConfig = BATTLE_CONFIG.power
-  const attackScale = stats.attack
-  const healthScale = stats.health / powerConfig.referenceTargetTtk
-  const armorScale = stats.armor / powerConfig.expectedArmorToAttackRatio
+
+  return (
+    Math.pow(scales.attack, powerConfig.opponentScaleAttackWeight) *
+    Math.pow(scales.health, powerConfig.opponentScaleHealthWeight) *
+    Math.pow(scales.armor, powerConfig.opponentScaleArmorWeight)
+  )
+}
+
+/** Эталонный противник: playerBase × S (единый scale по геом. среднему). */
+export function getScaledReferenceOpponent(statsInput: CombatantStats): ScaledReferenceOpponent {
+  const base = GEAR_CONFIG.playerBase
+  const scale = getReferenceOpponentScale(statsInput)
+
+  return {
+    attack: base.attack * scale,
+    health: base.health * scale,
+    armor: base.defence * scale,
+  }
+}
+
+export function calculateReferenceIncomingHit(statsInput: CombatantStats): number {
+  const opponent = getScaledReferenceOpponent(statsInput)
+  const derivations = getReferenceIncomingDerivations()
+  const healthScale = opponent.health / derivations.targetTtk
+  const armorScale = opponent.armor / derivations.armorToAttackRatio
 
   return Math.max(
     Number.EPSILON,
-    attackScale * powerConfig.referenceAttackWeight +
-      healthScale * powerConfig.referenceHealthWeight +
-      armorScale * powerConfig.referenceArmorWeight,
+    opponent.attack * derivations.weights.attack +
+      healthScale * derivations.weights.health +
+      armorScale * derivations.weights.armor,
   )
 }
 

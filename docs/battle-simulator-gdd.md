@@ -288,22 +288,47 @@ Seed позволяет получать повторяемые результа
 
 Выживаемость считается через тот же расчет брони, что и в бою, а не через линейную прибавку.
 
-Для оценки брони сначала считается условный входящий удар от равного по масштабу противника.
+Для оценки брони сначала строится **эталонный противник** (`gearConfig.playerBase`) с единым масштабом `S`.
 
-Этот удар собирается из трех базовых характеристик персонажа:
+Отдельные отношения герой / эталон:
 
 ```text
-referenceIncomingHit =
-  attack * 0.65
-  + (health / 8) * 0.30
-  + (armor / 0.6) * 0.05
+attackScale = hero.attack / playerBase.attack
+healthScale = hero.health / playerBase.health
+armorScale  = hero.armor / playerBase.defence
 ```
 
-Смысл частей:
+Общий scale — **взвешенное геометрическое среднее** (`config.ts`: `opponentScaleAttackWeight` 0.45, `opponentScaleHealthWeight` 0.35, `opponentScaleArmorWeight` 0.20):
 
-- атака показывает прямой масштаб урона персонажа;
-- здоровье переводится в условный входящий урон через целевую длительность боя 8 секунд;
-- броня переводится в эквивалент атаки через ожидаемое отношение брони к атаке 0.6.
+```text
+S = attackScale^0.45 * healthScale^0.35 * armorScale^0.20
+```
+
+Эталонный противник для формулы:
+
+```text
+oppAttack = playerBase.attack * S
+oppHealth = playerBase.health * S
+oppArmor  = playerBase.defence * S
+```
+
+Пример: герой `60 / 200 / 30` при эталоне `25 / 100 / 10` → `S ≈ 2.38` → противник `≈ 59.5 / 238 / 23.8` (сглаживает перекосы).
+
+Далее:
+
+```text
+targetTtk = playerBase.health / playerBase.attack
+armorToAttackRatio = playerBase.defence / playerBase.attack
+
+referenceIncomingHit =
+  oppAttack * 0.65
+  + (oppHealth / targetTtk) * 0.30
+  + (oppArmor / armorToAttackRatio) * 0.05
+```
+
+При зеркальных статах (`25 / 100 / 10`) → `S = 1`, противник = `playerBase`, `referenceIncomingHit` = `playerBase.attack`.
+
+Веса scale — в `config.ts`, веса refIncoming — в `power.ts`. Менять эталон — через `gearConfig.playerBase`.
 
 Затем формула смотрит, сколько урона такой удар нанесет после брони персонажа:
 

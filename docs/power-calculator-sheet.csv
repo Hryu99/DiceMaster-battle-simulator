@@ -13,17 +13,19 @@ Lifesteal, %;0;
 Mass Attack (area), %;0;
 Thorns, %;0;
 ;;
-—— КОНФИГ (из config.ts) ——;;
 armorDamageConstant;3;
 minDamageMultiplier;0,05;
-playerBaseDefence (база refEnemyArmor);10;из gearConfig.playerBase.defence
-playerBaseSpeed (база incoming atk speed);1;playerBase.speed/100 → множитель (100% = 1)
+—— ЭТАЛОН ПРОТИВНИКА (gearConfig.playerBase) ——;;
+playerBaseAttack;25;
+playerBaseHealth;100;
+playerBaseDefence;10;refEnemyArmor при scale=1
+playerBaseSpeed (база incoming atk speed);1;playerBase.speed/100 → множитель
+;;
+—— КОНФИГ СИЛЫ (config.ts) ——;;
 averageExtraTargets;1,5;
-referenceAttackWeight;0,65;
-referenceHealthWeight;0,3;
-referenceArmorWeight;0,05;
-referenceTargetTtk;8;
-expectedArmorToAttackRatio;0,6;
+opponentScaleAttackWeight;0,45;
+opponentScaleHealthWeight;0,35;
+opponentScaleArmorWeight;0,2;
 critEfficiency;0,65;
 attackSpeedEfficiency;0,85;
 hitImpactEfficiency;0,45;
@@ -46,25 +48,34 @@ ls;"=MIN(1;MAX(0;B12/100))";
 area;"=MIN(1;MAX(0;B13/100))";
 th;"=MAX(0;B14/100)";
 ;;
-—— РАСЧЁТ ——;;check = Node calculatePower()
-refIncoming (удар по тебе);"=MAX(1E-9;B39*$B$22+B40/$B$25*$B$23+B41/$B$26*$B$24)";
-refEnemyArmor;=$B$19;enemyArmorScale=1 в коде
-incomingOnYou (после своей брони);"=IF((B50)<=0;0;MAX((B50)*$B$18;(B50)*$B$17/($B$17+MAX(0;B41)/(B50))))";17,9598
-effectiveHealth (EHP);=B40*B50/B52;116
-mainHitAfterArmor;"=IF((B39)<=0;0;MAX((B39)*$B$18;(B39)*$B$17/($B$17+MAX(0;B51)/(B39))))";
-expectedHitDamage;=B54*(1+B43*(B44-1)*$B$27);
-effectiveAttackSpeed;"=MAX(1E-9;1+(B42-1)*$B$28)";
-dps (main, без hitImpact);=B55*B56;22,0588
-hitImpactRatio;=B55/B50;
-hitImpactMultiplier;"=MIN($B$31;MAX($B$30;1+$B$29*(B58-1)))";
-weightedDps;=B57*B59;
-areaHitAfterArmor;"=IF((B39*B46)<=0;0;MAX((B39*B46)*$B$18;(B39*B46)*$B$17/($B$17+MAX(0;B51)/(B39*B46))))";
-areaDps;=B61*$B$21*$B$32*B56;
-effectiveDps;=B60+B62;
-sustain (только от main dps);=B57*B45*$B$33;
-sustainMultiplier;"=1+B64/MAX(1;B63+B53/20)";
-thornsRaw;=B41*B47;
-thornsAfterArmor;"=IF((B66)<=0;0;MAX((B66)*$B$18;(B66)*$B$17/($B$17+MAX(0;B51)/(B66))))";
-thornsValue;=B67*$B$20*$B$34;
-pressure;=B63+B68;
-СИЛА (power);"=POWER(B53;$B$35)*POWER(B69;$B$36)*B65";47,2299
+—— РАСЧЁТ ——;;сверка с Node (колонка C)
+scaleAttack (герой / эталон);=B41/$B$19;
+scaleHealth (герой / эталон);=B42/$B$20;
+scaleArmor (герой / эталон);=B43/$B$21;
+opponentScale S (взвеш. геом. среднее);"=POWER(B52;$B$26)*POWER(B53;$B$27)*POWER(B54;$B$28)";1
+oppAttack (эталон × S);=$B$19*B55;25
+oppHealth (эталон × S);=$B$20*B55;100
+oppArmor (эталон × S);=$B$21*B55;10
+refTargetTtk (из playerBase);=$B$20/$B$19;только из playerBase
+refArmorToAttackRatio (из playerBase);=$B$21/$B$19;только из playerBase
+refIncoming (удар по тебе);"=MAX(1E-9;B56*0,65+B57/B59*0,3+B58/B60*0,05)";25
+refEnemyArmor;=$B$21;scale=1 в коде
+incomingOnYou (после своей брони);"=IF((B61)<=0;0;MAX((B61)*$B$17;(B61)*$B$16/($B$16+MAX(0;B43)/(B61))))";22,0588
+effectiveHealth (EHP);=B42*B61/B63;113,3333
+mainHitAfterArmor;"=IF((B41)<=0;0;MAX((B41)*$B$17;(B41)*$B$16/($B$16+MAX(0;B62)/(B41))))";
+expectedHitDamage;=B65*(1+B45*(B46-1)*$B$29);
+effectiveAttackSpeed;"=MAX(1E-9;1+(B44-1)*$B$30)";
+dps (main, без hitImpact);=B66*B67;22,0588
+hitImpactRatio;=B66/B61;
+hitImpactMultiplier;"=MIN($B$33;MAX($B$32;1+$B$31*(B69-1)))";
+weightedDps;=B68*B70;
+areaHitAfterArmor;"=IF((B41*B48)<=0;0;MAX((B41*B48)*$B$17;(B41*B48)*$B$16/($B$16+MAX(0;B62)/(B41*B48))))";
+areaDps;=B72*$B$25*$B$34*B67;
+effectiveDps;=B71+B73;
+sustain (только от main dps);=B68*B47*$B$35;
+sustainMultiplier;"=1+B75/MAX(1;B74+B64/20)";
+thornsRaw;=B43*B49;
+thornsAfterArmor;"=IF((B77)<=0;0;MAX((B77)*$B$17;(B77)*$B$16/($B$16+MAX(0;B62)/(B77))))";
+thornsValue;=B78*$B$22*$B$36;
+pressure;=B74+B79;
+СИЛА (power);"=POWER(B64;$B$37)*POWER(B80;$B$38)*B76";44,7135

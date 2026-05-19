@@ -1,5 +1,5 @@
 import { BATTLE_CONFIG } from './config'
-import { calculatePower, calculateReferenceEnemyArmor } from './power'
+import { calculatePower, calculateReferenceEnemyArmor, calculateReferenceIncomingHit } from './power'
 import { SeededRandom, type RandomSource } from './rng'
 import { runSimulations } from './simulator'
 import type { Combatant, CombatantStats, PowerBreakdown, Team } from './types'
@@ -279,7 +279,7 @@ export function createPowerLabDiagnostics(
   breakdown: PowerBreakdown,
   enemyArmorScale = 1,
 ): PowerLabDiagnostics {
-  const referenceIncomingHit = calculateDiagnosticReferenceIncomingHit(stats)
+  const referenceIncomingHit = calculateReferenceIncomingHit(stats)
   const referenceEnemyArmor = calculateReferenceEnemyArmor(enemyArmorScale)
 
   return {
@@ -299,20 +299,6 @@ export function createPowerLabDiagnostics(
     dpsToEffectiveHealthRatio: breakdown.dps / Math.max(breakdown.effectiveHealth, Number.EPSILON),
     thornsValue: breakdown.thornsValue,
   }
-}
-
-function calculateDiagnosticReferenceIncomingHit(stats: CombatantStats): number {
-  const powerConfig = BATTLE_CONFIG.power
-  const attackScale = Math.max(0, stats.attack)
-  const healthScale = Math.max(1, stats.health) / powerConfig.referenceTargetTtk
-  const armorScale = Math.max(0, stats.armor) / powerConfig.expectedArmorToAttackRatio
-
-  return Math.max(
-    Number.EPSILON,
-    attackScale * powerConfig.referenceAttackWeight +
-      healthScale * powerConfig.referenceHealthWeight +
-      armorScale * powerConfig.referenceArmorWeight,
-  )
 }
 
 function mergeConfig(overrides: Partial<PowerLabConfig>): PowerLabConfig {

@@ -3,9 +3,14 @@ import { BATTLE_CONFIG } from './config'
 import { calculateArmorReducedDamage } from './damage'
 import {
   calculatePower,
+  calculateReferenceIncomingHit,
   getReferenceEnemyArmorBase,
   getReferenceIncomingAttackSpeedBase,
+  getReferenceOpponentScale,
+  getReferenceStatScales,
+  getScaledReferenceOpponent,
 } from './power'
+import { GEAR_CONFIG } from './gear/gearConfig'
 import type { CombatantStats } from './types'
 
 const baseStats: CombatantStats = {
@@ -167,15 +172,61 @@ describe('calculatePower', () => {
 
   it('calculates effective health through the shared armor damage model', () => {
     const breakdown = calculatePower(baseStats)
-    const referenceIncomingHit =
-      baseStats.attack * BATTLE_CONFIG.power.referenceAttackWeight +
-      (baseStats.health / BATTLE_CONFIG.power.referenceTargetTtk) * BATTLE_CONFIG.power.referenceHealthWeight +
-      (baseStats.armor / BATTLE_CONFIG.power.expectedArmorToAttackRatio) * BATTLE_CONFIG.power.referenceArmorWeight
+    const referenceIncomingHit = calculateReferenceIncomingHit(baseStats)
     const incomingDamageAfterArmor = calculateArmorReducedDamage(referenceIncomingHit, baseStats.armor)
 
     expect(breakdown.effectiveHealth).toBeCloseTo(
       baseStats.health * (referenceIncomingHit / incomingDamageAfterArmor),
     )
+  })
+
+  it('uses scale 1 and mirrors playerBase when hero stats match playerBase', () => {
+    const mirrorStats = {
+      attack: GEAR_CONFIG.playerBase.attack,
+      health: GEAR_CONFIG.playerBase.health,
+      armor: GEAR_CONFIG.playerBase.defence,
+      attackSpeed: 100,
+      critChance: 0,
+      critDamage: 150,
+      lifesteal: 0,
+      areaAttack: 0,
+      thorns: 0,
+    }
+
+    expect(getReferenceStatScales(mirrorStats)).toEqual({ attack: 1, health: 1, armor: 1 })
+    expect(getReferenceOpponentScale(mirrorStats)).toBeCloseTo(1)
+    expect(getScaledReferenceOpponent(mirrorStats)).toEqual({
+      attack: GEAR_CONFIG.playerBase.attack,
+      health: GEAR_CONFIG.playerBase.health,
+      armor: GEAR_CONFIG.playerBase.defence,
+    })
+    expect(calculateReferenceIncomingHit(mirrorStats)).toBeCloseTo(GEAR_CONFIG.playerBase.attack)
+  })
+
+  it('combines per-stat scales with weighted geometric mean', () => {
+    const heroStats = {
+      attack: 60,
+      health: 200,
+      armor: 30,
+      attackSpeed: 100,
+      critChance: 0,
+      critDamage: 150,
+      lifesteal: 0,
+      areaAttack: 0,
+      thorns: 0,
+    }
+
+    expect(getReferenceStatScales(heroStats).attack).toBeCloseTo(2.4)
+    expect(getReferenceStatScales(heroStats).health).toBeCloseTo(2)
+    expect(getReferenceStatScales(heroStats).armor).toBeCloseTo(3)
+
+    const scale = getReferenceOpponentScale(heroStats)
+    expect(scale).toBeCloseTo(2.38, 1)
+
+    const opponent = getScaledReferenceOpponent(heroStats)
+    expect(opponent.attack).toBeCloseTo(25 * scale, 1)
+    expect(opponent.health).toBeCloseTo(100 * scale, 0)
+    expect(opponent.armor).toBeCloseTo(10 * scale, 1)
   })
 
   it('values thorns as a percentage of armor', () => {

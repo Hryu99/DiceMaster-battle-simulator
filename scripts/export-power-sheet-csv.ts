@@ -14,7 +14,12 @@ import { fileURLToPath } from 'node:url'
 import { BATTLE_CONFIG } from '../src/battle/config.ts'
 import { GEAR_CONFIG } from '../src/battle/gear/gearConfig.ts'
 import { calculateArmorReducedDamage } from '../src/battle/damage.ts'
-import { calculatePower } from '../src/battle/power.ts'
+import {
+  calculatePower,
+  calculateReferenceIncomingHit,
+  getReferenceOpponentScale,
+  getScaledReferenceOpponent,
+} from '../src/battle/power.ts'
 import type { CombatantStats } from '../src/battle/types.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -53,9 +58,19 @@ function rowToCsvLine(cells: string[]): string {
   return cells.map(escapeCsvField).join(FIELD_SEP)
 }
 
+/** Колонка C: не начинать с «=», иначе Excel воспримет как формулу. */
+function checkNote(text: string): string {
+  const trimmed = text.trim()
+  if (trimmed.startsWith('=')) {
+    return `примечание: ${trimmed.slice(1).trim()}`
+  }
+
+  return trimmed
+}
+
 function addRow(label: string, value: string, check = '', key?: string): number {
   sheetRow += 1
-  rows.push([label, value, check])
+  rows.push([label, value, checkNote(check)])
   if (key) {
     R[key] = sheetRow
   }
@@ -93,27 +108,29 @@ function buildRows(): CsvRow[] {
   addRow('Thorns, %', '0', '', 'thorns')
   addRow('', '', '')
 
-  addRow('—— КОНФИГ (из config.ts) ——', '', '')
   addRow('armorDamageConstant', n(BATTLE_CONFIG.armorDamageConstant), '', 'cfgArmorK')
   addRow('minDamageMultiplier', n(BATTLE_CONFIG.minDamageMultiplier), '', 'cfgMinDmg')
+  addRow('—— ЭТАЛОН ПРОТИВНИКА (gearConfig.playerBase) ——', '', '')
+  addRow('playerBaseAttack', n(GEAR_CONFIG.playerBase.attack), '', 'cfgPlayerBaseAtk')
+  addRow('playerBaseHealth', n(GEAR_CONFIG.playerBase.health), '', 'cfgPlayerBaseHp')
   addRow(
-    'playerBaseDefence (база refEnemyArmor)',
+    'playerBaseDefence',
     n(GEAR_CONFIG.playerBase.defence),
-    'из gearConfig.playerBase.defence',
+    'refEnemyArmor при scale=1',
     'cfgPlayerBaseDef',
   )
   addRow(
     'playerBaseSpeed (база incoming atk speed)',
     n(GEAR_CONFIG.playerBase.speed / 100),
-    'playerBase.speed/100 → множитель (100% = 1)',
+    'playerBase.speed/100 → множитель',
     'cfgPlayerBaseSpd',
   )
+  addRow('', '', '')
+  addRow('—— КОНФИГ СИЛЫ (config.ts) ——', '', '')
   addRow('averageExtraTargets', n(p.averageExtraTargets), '', 'cfgAvgExtraTargets')
-  addRow('referenceAttackWeight', n(p.referenceAttackWeight), '', 'cfgRefAtkW')
-  addRow('referenceHealthWeight', n(p.referenceHealthWeight), '', 'cfgRefHpW')
-  addRow('referenceArmorWeight', n(p.referenceArmorWeight), '', 'cfgRefArmW')
-  addRow('referenceTargetTtk', n(p.referenceTargetTtk), '', 'cfgRefTtk')
-  addRow('expectedArmorToAttackRatio', n(p.expectedArmorToAttackRatio), '', 'cfgExpArmRatio')
+  addRow('opponentScaleAttackWeight', n(p.opponentScaleAttackWeight), '', 'cfgOppScaleAtkW')
+  addRow('opponentScaleHealthWeight', n(p.opponentScaleHealthWeight), '', 'cfgOppScaleHpW')
+  addRow('opponentScaleArmorWeight', n(p.opponentScaleArmorWeight), '', 'cfgOppScaleArmW')
   addRow('critEfficiency', n(p.critEfficiency), '', 'cfgCritEff')
   addRow('attackSpeedEfficiency', n(p.attackSpeedEfficiency), '', 'cfgAtkSpdEff')
   addRow('hitImpactEfficiency', n(p.hitImpactEfficiency), '', 'cfgHitImpactEff')
@@ -138,14 +155,43 @@ function buildRows(): CsvRow[] {
   addRow('th', `=MAX(0;${b(R.thorns)}/100)`, '', 'normTh')
   addRow('', '', '')
 
-  addRow('—— РАСЧЁТ ——', '', 'check = Node calculatePower()')
+  addRow('—— РАСЧЁТ ——', '', 'сверка с Node (колонка C)')
+  addRow('scaleAttack (герой / эталон)', `=${b(R.normAtk)}/${$(R.cfgPlayerBaseAtk)}`, '', 'scaleAtk')
+  addRow('scaleHealth (герой / эталон)', `=${b(R.normHp)}/${$(R.cfgPlayerBaseHp)}`, '', 'scaleHp')
+  addRow('scaleArmor (герой / эталон)', `=${b(R.normArm)}/${$(R.cfgPlayerBaseDef)}`, '', 'scaleArm')
+  addRow(
+    'opponentScale S (взвеш. геом. среднее)',
+    `=POWER(${b(R.scaleAtk)};${$(R.cfgOppScaleAtkW)})*POWER(${b(R.scaleHp)};${$(R.cfgOppScaleHpW)})*POWER(${b(R.scaleArm)};${$(R.cfgOppScaleArmW)})`,
+    'сумма весов = 1',
+    'oppScale',
+  )
+  addRow(
+    'oppAttack (эталон × S)',
+    `=${$(R.cfgPlayerBaseAtk)}*${b(R.oppScale)}`,
+    'playerBase.attack × S',
+    'oppAtk',
+  )
+  addRow('oppHealth (эталон × S)', `=${$(R.cfgPlayerBaseHp)}*${b(R.oppScale)}`, 'playerBase.health × S', 'oppHp')
+  addRow('oppArmor (эталон × S)', `=${$(R.cfgPlayerBaseDef)}*${b(R.oppScale)}`, 'playerBase.defence × S', 'oppArm')
+  addRow(
+    'refTargetTtk (из playerBase)',
+    `=${$(R.cfgPlayerBaseHp)}/${$(R.cfgPlayerBaseAtk)}`,
+    'только из playerBase',
+    'refTtk',
+  )
+  addRow(
+    'refArmorToAttackRatio (из playerBase)',
+    `=${$(R.cfgPlayerBaseDef)}/${$(R.cfgPlayerBaseAtk)}`,
+    'только из playerBase',
+    'refArmRatio',
+  )
   addRow(
     'refIncoming (удар по тебе)',
-    `=MAX(1E-9;${b(R.normAtk)}*${$(R.cfgRefAtkW)}+${b(R.normHp)}/${$(R.cfgRefTtk)}*${$(R.cfgRefHpW)}+${b(R.normArm)}/${$(R.cfgExpArmRatio)}*${$(R.cfgRefArmW)})`,
+    `=MAX(1E-9;${b(R.oppAtk)}*${n(0.65)}+${b(R.oppHp)}/${b(R.refTtk)}*${n(0.3)}+${b(R.oppArm)}/${b(R.refArmRatio)}*${n(0.05)})`,
     '',
     'refIncoming',
   )
-  addRow('refEnemyArmor', `=${$(R.cfgPlayerBaseDef)}`, 'enemyArmorScale=1 в коде', 'refEnemyArmor')
+  addRow('refEnemyArmor', `=${$(R.cfgPlayerBaseDef)}`, 'scale=1 в коде', 'refEnemyArmor')
   addRow(
     'incomingOnYou (после своей брони)',
     armorFormula(b(R.refIncoming), R.normArm),
@@ -235,22 +281,36 @@ function statsFromSheetDefaults(): CombatantStats {
 
 function expectedIncomingOnYou(): number {
   const stats = statsFromSheetDefaults()
-  const p = BATTLE_CONFIG.power
-  const refIncoming = Math.max(
-    1e-9,
-    stats.attack * p.referenceAttackWeight +
-      (stats.health / p.referenceTargetTtk) * p.referenceHealthWeight +
-      (stats.armor / p.expectedArmorToAttackRatio) * p.referenceArmorWeight,
-  )
+  const refIncoming = calculateReferenceIncomingHit(stats)
 
   return calculateArmorReducedDamage(refIncoming, stats.armor)
 }
 
 function attachValidationChecks(): void {
-  const breakdown = calculatePower(statsFromSheetDefaults())
+  const stats = statsFromSheetDefaults()
+  const breakdown = calculatePower(stats)
   const incoming = expectedIncomingOnYou()
+  const opponent = getScaledReferenceOpponent(stats)
+  const refIncoming = calculateReferenceIncomingHit(stats)
+
+  const defaultScale = getReferenceOpponentScale(stats)
 
   for (const row of rows) {
+    if (row[0] === 'opponentScale S (взвеш. геом. среднее)') {
+      row[2] = n(Number(defaultScale.toFixed(4)))
+    }
+    if (row[0] === 'oppAttack (эталон × S)') {
+      row[2] = n(opponent.attack)
+    }
+    if (row[0] === 'oppHealth (эталон × S)') {
+      row[2] = n(opponent.health)
+    }
+    if (row[0] === 'oppArmor (эталон × S)') {
+      row[2] = n(opponent.armor)
+    }
+    if (row[0] === 'refIncoming (удар по тебе)') {
+      row[2] = n(Number(refIncoming.toFixed(4)))
+    }
     if (row[0] === 'СИЛА (power)') {
       row[2] = n(Number(breakdown.power.toFixed(4)))
     }

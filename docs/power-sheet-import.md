@@ -45,8 +45,9 @@ npm run export:power-sheet
 
 Для голого героя:
 
-- **incomingOnYou** ≈ **17,96** (не 0)
-- **СИЛА** ≈ **47,23**
+- **refIncoming** = **25** (зеркало `playerBase`: atk/hp/arm как в конфиге)
+- **incomingOnYou** ≈ **22,06**
+- **СИЛА** ≈ **44,71**
 
 Сверяй колонку C с B в тех же строках.
 
