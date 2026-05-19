@@ -3,6 +3,7 @@ import { BATTLE_CONFIG } from './config'
 import { calculateArmorReducedDamage } from './damage'
 import {
   calculatePower,
+  calculateReferenceEnemyArmor,
   calculateReferenceIncomingHit,
   getReferenceEnemyArmorBase,
   getReferenceIncomingAttackSpeedBase,
@@ -49,7 +50,7 @@ describe('calculatePower', () => {
     const baseBreakdown = calculatePower(baseStats)
     const areaBreakdown = calculatePower({ ...baseStats, areaAttack: 80 })
     const expectedAreaDps =
-      calculateArmorReducedDamage(30 * 0.8, getReferenceEnemyArmorBase()) *
+      calculateArmorReducedDamage(30 * 0.8, calculateReferenceEnemyArmor(baseStats)) *
       BATTLE_CONFIG.power.averageExtraTargets *
       BATTLE_CONFIG.power.areaEfficiency *
       1
@@ -67,7 +68,7 @@ describe('calculatePower', () => {
     })
 
     expect(breakdown.expectedHitDamage).toBeCloseTo(
-      calculateArmorReducedDamage(100, getReferenceEnemyArmorBase()) *
+      calculateArmorReducedDamage(100, calculateReferenceEnemyArmor({ ...baseStats, attack: 100, critChance: 100, critDamage: 200 })) *
         (1 + BATTLE_CONFIG.power.critEfficiency),
     )
   })
@@ -81,7 +82,10 @@ describe('calculatePower', () => {
       areaAttack: 100,
     })
     const expectedAreaDps =
-      calculateArmorReducedDamage(100, getReferenceEnemyArmorBase()) *
+      calculateArmorReducedDamage(
+        100,
+        calculateReferenceEnemyArmor({ ...baseStats, attack: 100, critChance: 100, critDamage: 300, areaAttack: 100 }),
+      ) *
       BATTLE_CONFIG.power.averageExtraTargets *
       BATTLE_CONFIG.power.areaEfficiency *
       1
@@ -98,7 +102,10 @@ describe('calculatePower', () => {
 
   it('discounts attack speed above the baseline in power dps', () => {
     const breakdown = calculatePower({ ...baseStats, attackSpeed: 200, critChance: 0 })
-    const expectedHitDamage = calculateArmorReducedDamage(baseStats.attack, getReferenceEnemyArmorBase())
+    const expectedHitDamage = calculateArmorReducedDamage(
+      baseStats.attack,
+      calculateReferenceEnemyArmor({ ...baseStats, attackSpeed: 200, critChance: 0 }),
+    )
     const expectedAttackSpeed = 1 + (2 - 1) * BATTLE_CONFIG.power.attackSpeedEfficiency
 
     expect(breakdown.dps).toBeCloseTo(expectedHitDamage * expectedAttackSpeed)
@@ -118,10 +125,11 @@ describe('calculatePower', () => {
   })
 
   it('can scale reference enemy armor for higher power tiers', () => {
-    const scaledBreakdown = calculatePower({ ...baseStats, attack: 100, critChance: 0 }, { enemyArmorScale: 2 })
+    const scaledStats = { ...baseStats, attack: 100, critChance: 0 }
+    const scaledBreakdown = calculatePower(scaledStats, { enemyArmorScale: 2 })
 
     expect(scaledBreakdown.expectedHitDamage).toBeCloseTo(
-      calculateArmorReducedDamage(100, getReferenceEnemyArmorBase() * 2),
+      calculateArmorReducedDamage(100, calculateReferenceEnemyArmor(scaledStats, 2)),
     )
   })
 
@@ -227,6 +235,8 @@ describe('calculatePower', () => {
     expect(opponent.attack).toBeCloseTo(25 * scale, 1)
     expect(opponent.health).toBeCloseTo(100 * scale, 0)
     expect(opponent.armor).toBeCloseTo(10 * scale, 1)
+    expect(calculateReferenceIncomingHit(heroStats)).toBeCloseTo(opponent.attack)
+    expect(calculateReferenceEnemyArmor(heroStats)).toBeCloseTo(opponent.armor)
   })
 
   it('values thorns as a percentage of armor', () => {
@@ -235,7 +245,7 @@ describe('calculatePower', () => {
     const expectedThornsRawDamage = 200 * 0.1
 
     expect(breakdown.thornsValue).toBeCloseTo(
-      calculateArmorReducedDamage(expectedThornsRawDamage, getReferenceEnemyArmorBase()) *
+      calculateArmorReducedDamage(expectedThornsRawDamage, calculateReferenceEnemyArmor(statsWithThorns)) *
         getReferenceIncomingAttackSpeedBase() *
         BATTLE_CONFIG.power.thornsEfficiency,
     )

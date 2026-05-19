@@ -3,13 +3,6 @@ import { calculateArmorReducedDamage } from './damage'
 import { GEAR_CONFIG } from './gear/gearConfig'
 import type { Combatant, CombatantStats, PowerBreakdown, Team } from './types'
 
-/** Веса угрозы в refIncoming; калиброваны на playerBase, в конфиг не выносятся. */
-const REFERENCE_INCOMING_WEIGHTS = {
-  attack: 0.65,
-  health: 0.3,
-  armor: 0.05,
-} as const
-
 export interface ReferenceStatScales {
   attack: number
   health: number
@@ -47,8 +40,9 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
 export function calculatePower(statsInput: CombatantStats, options: PowerCalculationOptions = {}): PowerBreakdown {
   const stats = normalizeStats(statsInput)
   const powerConfig = BATTLE_CONFIG.power
+  const enemyArmorScale = Math.max(Number.EPSILON, options.enemyArmorScale ?? 1)
   const referenceIncomingHit = calculateReferenceIncomingHit(stats)
-  const referenceEnemyArmor = calculateReferenceEnemyArmor(options.enemyArmorScale)
+  const referenceEnemyArmor = calculateReferenceEnemyArmor(stats, enemyArmorScale)
   const incomingDamageAfterArmor = calculateArmorReducedDamage(referenceIncomingHit, stats.armor)
   const effectiveHealth =
     stats.health * (referenceIncomingHit / Math.max(incomingDamageAfterArmor, Number.EPSILON))
@@ -95,7 +89,7 @@ function calculateEffectiveAttackSpeed(attackSpeed: number): number {
   )
 }
 
-/** Базовая броня «среднего врага» = playerBase.defence из gearConfig. */
+/** Броня эталона без scale героя (playerBase.defence). */
 export function getReferenceEnemyArmorBase(): number {
   return GEAR_CONFIG.playerBase.defence
 }
@@ -105,8 +99,11 @@ export function getReferenceIncomingAttackSpeedBase(): number {
   return Math.max(0.05, GEAR_CONFIG.playerBase.speed / 100)
 }
 
-export function calculateReferenceEnemyArmor(enemyArmorScale = 1): number {
-  return getReferenceEnemyArmorBase() * Math.max(Number.EPSILON, enemyArmorScale)
+export function calculateReferenceEnemyArmor(
+  statsInput: CombatantStats,
+  enemyArmorScale = 1,
+): number {
+  return getScaledReferenceOpponent(statsInput).armor * Math.max(Number.EPSILON, enemyArmorScale)
 }
 
 function calculateHitImpactMultiplier(expectedHitDamage: number, referenceIncomingHit: number): number {
@@ -122,17 +119,6 @@ function toReferenceStatScale(stats: CombatantStats): Pick<CombatantStats, 'atta
     attack: Math.max(0, stats.attack),
     health: Math.max(1, stats.health),
     armor: Math.max(0, stats.armor),
-  }
-}
-
-function getReferenceIncomingDerivations() {
-  const base = GEAR_CONFIG.playerBase
-  const baseAttack = Math.max(Number.EPSILON, base.attack)
-
-  return {
-    targetTtk: base.health / baseAttack,
-    armorToAttackRatio: base.defence / baseAttack,
-    weights: REFERENCE_INCOMING_WEIGHTS,
   }
 }
 
@@ -171,18 +157,9 @@ export function getScaledReferenceOpponent(statsInput: CombatantStats): ScaledRe
   }
 }
 
+/** Условный входящий удар = атака эталонного противника (oppAttack). */
 export function calculateReferenceIncomingHit(statsInput: CombatantStats): number {
-  const opponent = getScaledReferenceOpponent(statsInput)
-  const derivations = getReferenceIncomingDerivations()
-  const healthScale = opponent.health / derivations.targetTtk
-  const armorScale = opponent.armor / derivations.armorToAttackRatio
-
-  return Math.max(
-    Number.EPSILON,
-    opponent.attack * derivations.weights.attack +
-      healthScale * derivations.weights.health +
-      armorScale * derivations.weights.armor,
-  )
+  return Math.max(Number.EPSILON, getScaledReferenceOpponent(statsInput).attack)
 }
 
 export function calculateCombatantPower(combatant: Combatant): number {

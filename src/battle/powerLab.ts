@@ -280,7 +280,7 @@ export function createPowerLabDiagnostics(
   enemyArmorScale = 1,
 ): PowerLabDiagnostics {
   const referenceIncomingHit = calculateReferenceIncomingHit(stats)
-  const referenceEnemyArmor = calculateReferenceEnemyArmor(enemyArmorScale)
+  const referenceEnemyArmor = calculateReferenceEnemyArmor(stats, enemyArmorScale)
 
   return {
     attack: stats.attack,

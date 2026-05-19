@@ -314,21 +314,16 @@ oppArmor  = playerBase.defence * S
 
 Пример: герой `60 / 200 / 30` при эталоне `25 / 100 / 10` → `S ≈ 2.38` → противник `≈ 59.5 / 238 / 23.8` (сглаживает перекосы).
 
-Далее:
+Далее для формулы силы:
 
 ```text
-targetTtk = playerBase.health / playerBase.attack
-armorToAttackRatio = playerBase.defence / playerBase.attack
-
-referenceIncomingHit =
-  oppAttack * 0.65
-  + (oppHealth / targetTtk) * 0.30
-  + (oppArmor / armorToAttackRatio) * 0.05
+referenceIncomingHit = oppAttack
+referenceEnemyArmor = oppArmor
 ```
 
-При зеркальных статах (`25 / 100 / 10`) → `S = 1`, противник = `playerBase`, `referenceIncomingHit` = `playerBase.attack`.
+При зеркальных статах (`25 / 100 / 10`) → `S = 1`, противник = `playerBase`.
 
-Веса scale — в `config.ts`, веса refIncoming — в `power.ts`. Менять эталон — через `gearConfig.playerBase`.
+Веса scale — в `config.ts`. Менять эталон — через `gearConfig.playerBase`.
 
 Затем формула смотрит, сколько урона такой удар нанесет после брони персонажа:
 

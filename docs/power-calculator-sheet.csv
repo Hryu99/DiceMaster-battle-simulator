@@ -3,9 +3,9 @@ DiceMaster — калькулятор силы;;
 "Импорт: Excel/Таблицы, локаль RU. Разделитель полей «;», в формулах «;» и дробная «,».";;
 ;;
 —— ВВОД СТАТОВ (меняй значения) ——;;
-Attack;25;
-Health;100;
-Armor;10;
+Attack;60;
+Health;200;
+Armor;30;
 Attack Speed, %;100;100 = базовая скорость
 Crit Chance, %;0;
 Crit Damage, %;150;150 = ×1,5 урона на крите
@@ -52,30 +52,28 @@ th;"=MAX(0;B14/100)";
 scaleAttack (герой / эталон);=B41/$B$19;
 scaleHealth (герой / эталон);=B42/$B$20;
 scaleArmor (герой / эталон);=B43/$B$21;
-opponentScale S (взвеш. геом. среднее);"=POWER(B52;$B$26)*POWER(B53;$B$27)*POWER(B54;$B$28)";1
-oppAttack (эталон × S);=$B$19*B55;25
-oppHealth (эталон × S);=$B$20*B55;100
-oppArmor (эталон × S);=$B$21*B55;10
-refTargetTtk (из playerBase);=$B$20/$B$19;только из playerBase
-refArmorToAttackRatio (из playerBase);=$B$21/$B$19;только из playerBase
-refIncoming (удар по тебе);"=MAX(1E-9;B56*0,65+B57/B59*0,3+B58/B60*0,05)";25
-refEnemyArmor;=$B$21;scale=1 в коде
-incomingOnYou (после своей брони);"=IF((B61)<=0;0;MAX((B61)*$B$17;(B61)*$B$16/($B$16+MAX(0;B43)/(B61))))";22,0588
-effectiveHealth (EHP);=B42*B61/B63;113,3333
-mainHitAfterArmor;"=IF((B41)<=0;0;MAX((B41)*$B$17;(B41)*$B$16/($B$16+MAX(0;B62)/(B41))))";
-expectedHitDamage;=B65*(1+B45*(B46-1)*$B$29);
+opponentScale S (взвеш. геом. среднее);"=POWER(B52;$B$26)*POWER(B53;$B$27)*POWER(B54;$B$28)";2,3544
+oppAttack (эталон × S);=$B$19*B55;58,859940245460265
+oppHealth (эталон × S);=$B$20*B55;235,43976098184106
+oppArmor (эталон × S);=$B$21*B55;23,543976098184103
+refIncoming (удар по тебе);=B56;58,8599
+refEnemyArmor;=B58;23,544
+incomingOnYou (после своей брони);"=IF((B59)<=0;0;MAX((B59)*$B$17;(B59)*$B$16/($B$16+MAX(0;B43)/(B59))))";50,3122
+effectiveHealth (EHP);=B42*B59/B61;233,979
+mainHitAfterArmor;"=IF((B41)<=0;0;MAX((B41)*$B$17;(B41)*$B$16/($B$16+MAX(0;B60)/(B41))))";
+expectedHitDamage;=B63*(1+B45*(B46-1)*$B$29);
 effectiveAttackSpeed;"=MAX(1E-9;1+(B44-1)*$B$30)";
-dps (main, без hitImpact);=B66*B67;22,0588
-hitImpactRatio;=B66/B61;
-hitImpactMultiplier;"=MIN($B$33;MAX($B$32;1+$B$31*(B69-1)))";
-weightedDps;=B68*B70;
-areaHitAfterArmor;"=IF((B41*B48)<=0;0;MAX((B41*B48)*$B$17;(B41*B48)*$B$16/($B$16+MAX(0;B62)/(B41*B48))))";
-areaDps;=B72*$B$25*$B$34*B67;
-effectiveDps;=B71+B73;
-sustain (только от main dps);=B68*B47*$B$35;
-sustainMultiplier;"=1+B75/MAX(1;B74+B64/20)";
+dps (main, без hitImpact);=B64*B65;53,0598
+hitImpactRatio;=B64/B59;
+hitImpactMultiplier;"=MIN($B$33;MAX($B$32;1+$B$31*(B67-1)))";
+weightedDps;=B66*B68;
+areaHitAfterArmor;"=IF((B41*B48)<=0;0;MAX((B41*B48)*$B$17;(B41*B48)*$B$16/($B$16+MAX(0;B60)/(B41*B48))))";
+areaDps;=B70*$B$25*$B$34*B65;
+effectiveDps;=B69+B71;
+sustain (только от main dps);=B66*B47*$B$35;
+sustainMultiplier;"=1+B73/MAX(1;B72+B62/20)";
 thornsRaw;=B43*B49;
-thornsAfterArmor;"=IF((B77)<=0;0;MAX((B77)*$B$17;(B77)*$B$16/($B$16+MAX(0;B62)/(B77))))";
-thornsValue;=B78*$B$22*$B$36;
-pressure;=B74+B79;
-СИЛА (power);"=POWER(B64;$B$37)*POWER(B80;$B$38)*B76";44,7135
+thornsAfterArmor;"=IF((B75)<=0;0;MAX((B75)*$B$17;(B75)*$B$16/($B$16+MAX(0;B60)/(B75))))";
+thornsValue;=B76*$B$22*$B$36;
+pressure;=B72+B77;
+СИЛА (power);"=POWER(B62;$B$37)*POWER(B78;$B$38)*B74";100,9059

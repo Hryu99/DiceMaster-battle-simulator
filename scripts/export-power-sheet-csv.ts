@@ -16,6 +16,7 @@ import { GEAR_CONFIG } from '../src/battle/gear/gearConfig.ts'
 import { calculateArmorReducedDamage } from '../src/battle/damage.ts'
 import {
   calculatePower,
+  calculateReferenceEnemyArmor,
   calculateReferenceIncomingHit,
   getReferenceOpponentScale,
   getScaledReferenceOpponent,
@@ -27,6 +28,19 @@ const OUT_PATH = join(__dirname, '../docs/power-calculator-sheet.csv')
 const FIELD_SEP = ';'
 
 type CsvRow = [string, string, string?]
+
+/** Стартовые статы в блоке «ВВОД СТАТОВ» и для колонки C (сверка). */
+const DEFAULT_SHEET_HERO_STATS: CombatantStats = {
+  attack: 60,
+  health: 200,
+  armor: 30,
+  attackSpeed: 100,
+  critChance: 0,
+  critDamage: 150,
+  lifesteal: 0,
+  areaAttack: 0,
+  thorns: 0,
+}
 
 /** Номера строк на листе (строка 1 = заголовок CSV). */
 const R: Record<string, number> = {}
@@ -97,9 +111,9 @@ function buildRows(): CsvRow[] {
   addRow('', '', '')
   addRow('—— ВВОД СТАТОВ (меняй значения) ——', '', '')
 
-  addRow('Attack', '25', '', 'attack')
-  addRow('Health', '100', '', 'health')
-  addRow('Armor', '10', '', 'armor')
+  addRow('Attack', String(DEFAULT_SHEET_HERO_STATS.attack), '', 'attack')
+  addRow('Health', String(DEFAULT_SHEET_HERO_STATS.health), '', 'health')
+  addRow('Armor', String(DEFAULT_SHEET_HERO_STATS.armor), '', 'armor')
   addRow('Attack Speed, %', '100', '100 = базовая скорость', 'speed')
   addRow('Crit Chance, %', '0', '', 'critChance')
   addRow('Crit Damage, %', '150', '150 = ×1,5 урона на крите', 'critDamage')
@@ -173,25 +187,8 @@ function buildRows(): CsvRow[] {
   )
   addRow('oppHealth (эталон × S)', `=${$(R.cfgPlayerBaseHp)}*${b(R.oppScale)}`, 'playerBase.health × S', 'oppHp')
   addRow('oppArmor (эталон × S)', `=${$(R.cfgPlayerBaseDef)}*${b(R.oppScale)}`, 'playerBase.defence × S', 'oppArm')
-  addRow(
-    'refTargetTtk (из playerBase)',
-    `=${$(R.cfgPlayerBaseHp)}/${$(R.cfgPlayerBaseAtk)}`,
-    'только из playerBase',
-    'refTtk',
-  )
-  addRow(
-    'refArmorToAttackRatio (из playerBase)',
-    `=${$(R.cfgPlayerBaseDef)}/${$(R.cfgPlayerBaseAtk)}`,
-    'только из playerBase',
-    'refArmRatio',
-  )
-  addRow(
-    'refIncoming (удар по тебе)',
-    `=MAX(1E-9;${b(R.oppAtk)}*${n(0.65)}+${b(R.oppHp)}/${b(R.refTtk)}*${n(0.3)}+${b(R.oppArm)}/${b(R.refArmRatio)}*${n(0.05)})`,
-    '',
-    'refIncoming',
-  )
-  addRow('refEnemyArmor', `=${$(R.cfgPlayerBaseDef)}`, 'scale=1 в коде', 'refEnemyArmor')
+  addRow('refIncoming (удар по тебе)', `=${b(R.oppAtk)}`, '= oppAttack', 'refIncoming')
+  addRow('refEnemyArmor', `=${b(R.oppArm)}`, '= oppArmor', 'refEnemyArmor')
   addRow(
     'incomingOnYou (после своей брони)',
     armorFormula(b(R.refIncoming), R.normArm),
@@ -266,17 +263,7 @@ function buildRows(): CsvRow[] {
 }
 
 function statsFromSheetDefaults(): CombatantStats {
-  return {
-    attack: 25,
-    health: 100,
-    armor: 10,
-    attackSpeed: 100,
-    critChance: 0,
-    critDamage: 150,
-    lifesteal: 0,
-    areaAttack: 0,
-    thorns: 0,
-  }
+  return { ...DEFAULT_SHEET_HERO_STATS }
 }
 
 function expectedIncomingOnYou(): number {
@@ -311,6 +298,9 @@ function attachValidationChecks(): void {
     if (row[0] === 'refIncoming (удар по тебе)') {
       row[2] = n(Number(refIncoming.toFixed(4)))
     }
+    if (row[0] === 'refEnemyArmor') {
+      row[2] = n(Number(calculateReferenceEnemyArmor(stats).toFixed(4)))
+    }
     if (row[0] === 'СИЛА (power)') {
       row[2] = n(Number(breakdown.power.toFixed(4)))
     }
@@ -336,9 +326,11 @@ function main(): void {
   const csv = [header, ...body].join('\n') + '\n'
   writeFileSync(OUT_PATH, csv, 'utf8')
 
-  const nakedPower = calculatePower(statsFromSheetDefaults()).power
+  const examplePower = calculatePower(statsFromSheetDefaults()).power
   console.log(`Wrote ${OUT_PATH}`)
-  console.log(`Голый герой: power ≈ ${n(Number(nakedPower.toFixed(2)))}`)
+  console.log(
+    `Пример (${DEFAULT_SHEET_HERO_STATS.attack}/${DEFAULT_SHEET_HERO_STATS.health}/${DEFAULT_SHEET_HERO_STATS.armor}): power ≈ ${n(Number(examplePower.toFixed(2)))}`,
+  )
   console.log(
     `Ключевые строки: refIncoming B${R.refIncoming}, incomingOnYou B${R.incomingOnYou}, EHP B${R.ehp}, СИЛА B${R.power}`,
   )
