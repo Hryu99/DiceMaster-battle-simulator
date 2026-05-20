@@ -25,9 +25,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT_PATH = join(__dirname, '../docs/power-calculator-sheet.csv')
 const FIELD_SEP = ';'
 
-type CsvRow = [string, string, string?]
+type CsvRow = [string, string, string, string]
 
-/** Стартовые статы в блоке «ВВОД СТАТОВ» и для колонки C (сверка). */
+/** Стартовые статы в блоке «ВВОД СТАТОВ» и для сверки в колонке D. */
 const DEFAULT_SHEET_HERO_STATS: CombatantStats = {
   attack: 60,
   health: 200,
@@ -70,8 +70,8 @@ function rowToCsvLine(cells: string[]): string {
   return cells.map(escapeCsvField).join(FIELD_SEP)
 }
 
-/** Колонка C: не начинать с «=», иначе Excel воспримет как формулу. */
-function checkNote(text: string): string {
+/** Текстовые колонки C/D: не начинать с «=», иначе Excel воспримет как формулу. */
+function safeTextColumn(text: string): string {
   const trimmed = text.trim()
   if (trimmed.startsWith('=')) {
     return `примечание: ${trimmed.slice(1).trim()}`
@@ -80,9 +80,89 @@ function checkNote(text: string): string {
   return trimmed
 }
 
-function addRow(label: string, value: string, check = '', key?: string): number {
+const ROW_KEYS = new Set([
+  'attack',
+  'health',
+  'armor',
+  'speed',
+  'critChance',
+  'critDamage',
+  'lifesteal',
+  'area',
+  'thorns',
+  'cfgArmorK',
+  'cfgMinDmg',
+  'cfgPlayerBaseAtk',
+  'cfgPlayerBaseHp',
+  'cfgPlayerBaseDef',
+  'cfgPlayerBaseSpd',
+  'cfgAvgExtraTargets',
+  'cfgOppScaleAtkW',
+  'cfgOppScaleHpW',
+  'cfgOppScaleArmW',
+  'cfgCritEff',
+  'cfgAtkSpdEff',
+  'cfgHitImpactEff',
+  'cfgMinHitImpact',
+  'cfgMaxHitImpact',
+  'cfgAreaEff',
+  'cfgLsEff',
+  'cfgThornsEff',
+  'cfgSustainEhpDiv',
+  'cfgDefW',
+  'cfgOffW',
+  'normAtk',
+  'normHp',
+  'normArm',
+  'normSpd',
+  'normCritC',
+  'normCritD',
+  'normLs',
+  'normArea',
+  'normTh',
+  'scaleAtk',
+  'scaleHp',
+  'scaleArm',
+  'oppScale',
+  'oppAtk',
+  'oppHp',
+  'oppArm',
+  'incomingOnYou',
+  'ehp',
+  'mainHit',
+  'expectedHit',
+  'effSpd',
+  'dps',
+  'hitImpactRatio',
+  'hitImpactMult',
+  'weightedDps',
+  'areaHit',
+  'areaDps',
+  'effectiveDps',
+  'sustain',
+  'sustainMult',
+  'thornsRaw',
+  'thornsHit',
+  'thornsValue',
+  'pressure',
+  'power',
+])
+
+function addRow(label: string, value: string, note = '', fourth = '', fifth?: string): number {
+  let check = ''
+  let key: string | undefined
+
+  if (fifth !== undefined) {
+    check = fourth
+    key = fifth
+  } else if (ROW_KEYS.has(fourth)) {
+    key = fourth
+  } else {
+    check = fourth
+  }
+
   sheetRow += 1
-  rows.push([label, value, checkNote(check)])
+  rows.push([label, value, safeTextColumn(note), safeTextColumn(check)])
   if (key) {
     R[key] = sheetRow
   }
@@ -238,90 +318,108 @@ function buildRows(): CsvRow[] {
   addRow('th', `=MAX(0;${b(R.thorns)}/100)`, '', 'normTh')
   addRow('', '', '')
 
-  addRow('—— РАСЧЁТ ——', '', 'сверка с Node (колонка C)')
-  addRow('scaleAttack (герой / эталон)', `=${b(R.normAtk)}/${$(R.cfgPlayerBaseAtk)}`, '', 'scaleAtk')
-  addRow('scaleHealth (герой / эталон)', `=${b(R.normHp)}/${$(R.cfgPlayerBaseHp)}`, '', 'scaleHp')
-  addRow('scaleArmor (герой / эталон)', `=${b(R.normArm)}/${$(R.cfgPlayerBaseDef)}`, '', 'scaleArm')
+  addRow('—— РАСЧЁТ ——', '', 'кратко: что считает строка; колонка D — сверка с Node')
+  addRow('scaleAttack (герой / эталон)', `=${b(R.normAtk)}/${$(R.cfgPlayerBaseAtk)}`, 'атака героя / эталон', '', 'scaleAtk')
+  addRow('scaleHealth (герой / эталон)', `=${b(R.normHp)}/${$(R.cfgPlayerBaseHp)}`, 'HP героя / эталон', '', 'scaleHp')
+  addRow('scaleArmor (герой / эталон)', `=${b(R.normArm)}/${$(R.cfgPlayerBaseDef)}`, 'броня героя / эталон', '', 'scaleArm')
   addRow(
     'opponentScale S (взвеш. геом. среднее)',
     `=POWER(${b(R.scaleAtk)};${$(R.cfgOppScaleAtkW)})*POWER(${b(R.scaleHp)};${$(R.cfgOppScaleHpW)})*POWER(${b(R.scaleArm)};${$(R.cfgOppScaleArmW)})`,
-    'сумма весов = 1',
+    'общий масштаб зеркального врага',
+    '',
     'oppScale',
   )
   addRow(
     'oppAttack (эталон × S)',
     `=${$(R.cfgPlayerBaseAtk)}*${b(R.oppScale)}`,
-    'playerBase.attack × S',
+    'условный входящий удар по тебе',
+    '',
     'oppAtk',
   )
-  addRow('oppHealth (эталон × S)', `=${$(R.cfgPlayerBaseHp)}*${b(R.oppScale)}`, 'playerBase.health × S', 'oppHp')
-  addRow('oppArmor (эталон × S)', `=${$(R.cfgPlayerBaseDef)}*${b(R.oppScale)}`, 'playerBase.defence × S', 'oppArm')
+  addRow('oppHealth (эталон × S)', `=${$(R.cfgPlayerBaseHp)}*${b(R.oppScale)}`, 'HP эталона (справочно)', '', 'oppHp')
+  addRow('oppArmor (эталон × S)', `=${$(R.cfgPlayerBaseDef)}*${b(R.oppScale)}`, 'броня врага для твоего урона', '', 'oppArm')
   addRow(
     'incomingOnYou (после своей брони)',
     armorFormula(b(R.oppAtk), R.normArm),
-    'урон oppAttack по твоей броне',
+    'фактический урон oppAttack по тебе',
+    '',
     'incomingOnYou',
   )
-  addRow('effectiveHealth (EHP)', `=${b(R.normHp)}*${b(R.oppAtk)}/${b(R.incomingOnYou)}`, '', 'ehp')
+  addRow(
+    'effectiveHealth (EHP)',
+    `=${b(R.normHp)}*${b(R.oppAtk)}/${b(R.incomingOnYou)}`,
+    'эффективное HP vs эталонный удар',
+    '',
+    'ehp',
+  )
   addRow(
     'mainHitAfterArmor',
     armorFormula(b(R.normAtk), R.oppArm),
+    'твой удар после брони oppArmor',
     '',
     'mainHit',
   )
   addRow(
     'expectedHitDamage',
     `=${b(R.mainHit)}*(1+${b(R.normCritC)}*(${b(R.normCritD)}-1)*${$(R.cfgCritEff)})`,
+    'средний удар с критом (expected)',
     '',
     'expectedHit',
   )
   addRow(
     'effectiveAttackSpeed',
     `=MAX(1E-9;1+(${b(R.normSpd)}-1)*${$(R.cfgAtkSpdEff)})`,
+    'скорость атаки >100% с коэфф.',
     '',
     'effSpd',
   )
-  addRow('dps (main, без hitImpact)', `=${b(R.expectedHit)}*${b(R.effSpd)}`, '', 'dps')
-  addRow('hitImpactRatio', `=${b(R.expectedHit)}/${b(R.oppAtk)}`, 'expectedHit / oppAttack', 'hitImpactRatio')
+  addRow('dps (main, без hitImpact)', `=${b(R.expectedHit)}*${b(R.effSpd)}`, 'main DPS до hit impact', '', 'dps')
+  addRow('hitImpactRatio', `=${b(R.expectedHit)}/${b(R.oppAtk)}`, 'твой удар / удар по тебе', '', 'hitImpactRatio')
   addRow(
     'hitImpactMultiplier',
     `=MIN(${$(R.cfgMaxHitImpact)};MAX(${$(R.cfgMinHitImpact)};1+${$(R.cfgHitImpactEff)}*(${b(R.hitImpactRatio)}-1)))`,
+    'бонус крупного, штраф мелкого удара',
     '',
     'hitImpactMult',
   )
-  addRow('weightedDps', `=${b(R.dps)}*${b(R.hitImpactMult)}`, '', 'weightedDps')
+  addRow('weightedDps', `=${b(R.dps)}*${b(R.hitImpactMult)}`, 'DPS с hit impact', '', 'weightedDps')
   addRow(
     'areaHitAfterArmor',
     armorFormula(`${b(R.normAtk)}*${b(R.normArea)}`, R.oppArm),
+    'урон area через броню врага',
     '',
     'areaHit',
   )
   addRow(
     'areaDps',
     `=${b(R.areaHit)}*${$(R.cfgAvgExtraTargets)}*${$(R.cfgAreaEff)}*${b(R.effSpd)}`,
+    'вклад area в давление',
     '',
     'areaDps',
   )
-  addRow('effectiveDps', `=${b(R.weightedDps)}+${b(R.areaDps)}`, '', 'effectiveDps')
-  addRow('sustain (только от main dps)', `=${b(R.dps)}*${b(R.normLs)}*${$(R.cfgLsEff)}`, '', 'sustain')
+  addRow('effectiveDps', `=${b(R.weightedDps)}+${b(R.areaDps)}`, 'итоговое давление урона', '', 'effectiveDps')
+  addRow('sustain (только от main dps)', `=${b(R.dps)}*${b(R.normLs)}*${$(R.cfgLsEff)}`, 'хил только от обычной атаки', '', 'sustain')
   addRow(
     'sustainMultiplier',
     `=1+${b(R.sustain)}/MAX(1;${b(R.effectiveDps)}+${b(R.ehp)}/${$(R.cfgSustainEhpDiv)})`,
+    'множитель силы от lifesteal',
     '',
     'sustainMult',
   )
-  addRow('thornsRaw', `=${b(R.normArm)}*${b(R.normTh)}`, '', 'thornsRaw')
-  addRow('thornsAfterArmor', armorFormula(b(R.thornsRaw), R.oppArm), '', 'thornsHit')
+  addRow('thornsRaw', `=${b(R.normArm)}*${b(R.normTh)}`, 'сырой урон шипов', '', 'thornsRaw')
+  addRow('thornsAfterArmor', armorFormula(b(R.thornsRaw), R.oppArm), 'шипы после брони врага', '', 'thornsHit')
   addRow(
     'thornsValue',
     `=${b(R.thornsHit)}*${$(R.cfgPlayerBaseSpd)}*${$(R.cfgThornsEff)}`,
+    'шипы в pressure',
     '',
     'thornsValue',
   )
-  addRow('pressure', `=${b(R.effectiveDps)}+${b(R.thornsValue)}`, '', 'pressure')
+  addRow('pressure', `=${b(R.effectiveDps)}+${b(R.thornsValue)}`, 'урон + шипы', '', 'pressure')
   addRow(
     'СИЛА (power)',
     `=POWER(${b(R.ehp)};${$(R.cfgDefW)})*POWER(${b(R.pressure)};${$(R.cfgOffW)})*${b(R.sustainMult)}`,
+    'EHP^def × pressure^off × sustain',
     '',
     'power',
   )
@@ -349,28 +447,28 @@ function attachValidationChecks(): void {
 
   for (const row of rows) {
     if (row[0] === 'opponentScale S (взвеш. геом. среднее)') {
-      row[2] = n(Number(defaultScale.toFixed(4)))
+      row[3] = n(Number(defaultScale.toFixed(4)))
     }
     if (row[0] === 'oppAttack (эталон × S)') {
-      row[2] = n(opponent.attack)
+      row[3] = n(opponent.attack)
     }
     if (row[0] === 'oppHealth (эталон × S)') {
-      row[2] = n(opponent.health)
+      row[3] = n(opponent.health)
     }
     if (row[0] === 'oppArmor (эталон × S)') {
-      row[2] = n(opponent.armor)
+      row[3] = n(opponent.armor)
     }
     if (row[0] === 'СИЛА (power)') {
-      row[2] = n(Number(breakdown.power.toFixed(4)))
+      row[3] = n(Number(breakdown.power.toFixed(4)))
     }
     if (row[0] === 'effectiveHealth (EHP)') {
-      row[2] = n(Number(breakdown.effectiveHealth.toFixed(4)))
+      row[3] = n(Number(breakdown.effectiveHealth.toFixed(4)))
     }
     if (row[0] === 'dps (main, без hitImpact)') {
-      row[2] = n(Number(breakdown.dps.toFixed(4)))
+      row[3] = n(Number(breakdown.dps.toFixed(4)))
     }
     if (row[0] === 'incomingOnYou (после своей брони)') {
-      row[2] = n(Number(incoming.toFixed(4)))
+      row[3] = n(Number(incoming.toFixed(4)))
     }
   }
 }
@@ -379,8 +477,8 @@ function main(): void {
   buildRows()
   attachValidationChecks()
 
-  const header = rowToCsvLine(['Параметр', 'Значение / формула', 'Сверка (код)'])
-  const body = rows.map((r) => rowToCsvLine([r[0], r[1], r[2] ?? '']))
+  const header = rowToCsvLine(['Параметр', 'Значение / формула', 'Пояснение', 'Сверка (код)'])
+  const body = rows.map((r) => rowToCsvLine(r))
 
   const csv = [header, ...body].join('\n') + '\n'
   writeFileSync(OUT_PATH, csv, 'utf8')
