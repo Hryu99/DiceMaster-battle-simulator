@@ -1,4 +1,3 @@
-import { BATTLE_CONFIG } from './config'
 import { calculatePower, getScaledReferenceOpponent } from './power'
 import { SeededRandom, type RandomSource } from './rng'
 import { runSimulations } from './simulator'
