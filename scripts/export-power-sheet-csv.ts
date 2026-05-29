@@ -17,6 +17,7 @@ import {
   calculatePower,
   calculatePowerDefenseScore,
   calculatePowerEffectiveDamage,
+  getPowerArmorContext,
   getPowerReferenceProfile,
 } from '../src/battle/power.ts'
 import type { CombatantStats } from '../src/battle/types.ts'
@@ -98,8 +99,13 @@ const ROW_KEYS = new Set([
   'cfgPlayerBaseSpd',
   'cfgAvgExtraTargets',
   'cfgPowerArmorK',
+  'cfgArmScaleBase',
+  'cfgArmCtxExp',
   'cfgHealthDefExp',
   'cfgRefArmor',
+  'armorScale',
+  'armorRatingEff',
+  'refArmorEff',
   'cfgCritEff',
   'cfgAtkSpdEff',
   'cfgAreaEff',
@@ -156,20 +162,17 @@ function addRow(label: string, value: string, note = '', fourth = '', fifth?: st
   return sheetRow
 }
 
-/** Модель B: mit = armor / (armor + K) */
-function powerMitigationFormula(armorExpr: string): string {
+/** Модель B: mit = armor / (armor + K_eff) */
+function powerMitigationFormula(armorExpr: string, ratingRow: number): string {
   const wrapped = armorExpr.startsWith('(') ? armorExpr : `(${armorExpr})`
-  return `=${wrapped}/(${wrapped}+${$(R.cfgPowerArmorK)})`
+  return `=${wrapped}/(${wrapped}+${b(ratingRow)})`
 }
 
-function referenceMitigationFormula(): string {
-  return `=${$(R.cfgRefArmor)}/(${$(R.cfgRefArmor)}+${$(R.cfgPowerArmorK)})`
-}
-
-/** attack × (1 − mit(referenceArmor)) */
+/** attack × (1 − mit(refArmorEff)) с K_eff */
 function powerDamageFormula(attackExpr: string): string {
   const atk = attackExpr.startsWith('(') ? attackExpr : `(${attackExpr})`
-  return `=IF(${atk}<=0;0;${atk}*(1-${referenceMitigationFormula().slice(1)}))`
+  const mit = powerMitigationFormula(b(R.refArmorEff), R.armorRatingEff)
+  return `=IF(${atk}<=0;0;${atk}*(1-${mit.slice(1)}))`
 }
 
 function buildRows(): CsvRow[] {
@@ -225,9 +228,21 @@ function buildRows(): CsvRow[] {
     'cfgHealthDefExp',
   )
   addRow(
-    'referenceArmorForOffense',
+    'armorScaleBaseline',
+    n(p.armorScaleBaseline),
+    'armorScale = max(1; armor/baseline); только стат героя',
+    'cfgArmScaleBase',
+  )
+  addRow(
+    'armorContextScaleExponent',
+    n(p.armorContextScaleExponent),
+    'K_eff = K × armorScale^exp',
+    'cfgArmCtxExp',
+  )
+  addRow(
+    'referenceArmorForOffense (при scale=1)',
     n(p.referenceArmorForOffense),
-    'фикс. броня цели для урона в силе',
+    'refArmorEff = это × armorScale',
     'cfgRefArmor',
   )
   addRow(
@@ -281,16 +296,37 @@ function buildRows(): CsvRow[] {
 
   addRow('—— РАСЧЁТ (модель B) ——', '', 'колонка D — сверка с Node')
   addRow(
-    'mitigation(referenceArmor)',
-    powerMitigationFormula($(R.cfgRefArmor)),
-    'доля поглощения фикс. брони цели',
+    'armorScale',
+    `=MAX(1;${b(R.normArm)}/${$(R.cfgArmScaleBase)})`,
+    'масштаб от брони героя (не tier локации)',
+    '',
+    'armorScale',
+  )
+  addRow(
+    'armorRatingEff (K_eff)',
+    `=${$(R.cfgPowerArmorK)}*POWER(${b(R.armorScale)};${$(R.cfgArmCtxExp)})`,
+    'K для mit и defense',
+    '',
+    'armorRatingEff',
+  )
+  addRow(
+    'refArmorEff',
+    `=${$(R.cfgRefArmor)}*${b(R.armorScale)}`,
+    'броня цели в offense/thorns',
+    '',
+    'refArmorEff',
+  )
+  addRow(
+    'mitigation(refArmorEff)',
+    powerMitigationFormula(b(R.refArmorEff), R.armorRatingEff),
+    'доля поглощения при расчёте урона',
     '',
     'mitRef',
   )
   addRow(
     'defenseScore',
-    `=POWER(${b(R.normHp)};${$(R.cfgHealthDefExp)})*(1+${b(R.normArm)}/${$(R.cfgPowerArmorK)})`,
-    'выживаемость: HP^exp × (1 + armor/K)',
+    `=POWER(${b(R.normHp)};${$(R.cfgHealthDefExp)})*(1+${b(R.normArm)}/${b(R.armorRatingEff)})`,
+    'выживаемость: HP^exp × (1 + armor/K_eff)',
     '',
     'defenseScore',
   )
@@ -384,9 +420,18 @@ function attachValidationChecks(): void {
     if (row[0] === 'defenseScore') {
       row[3] = n(Number(breakdown.effectiveHealth.toFixed(4)))
     }
+    const ctx = getPowerArmorContext(stats.armor)
+    if (row[0] === 'armorRatingEff (K_eff)') {
+      row[3] = n(Number(ctx.armorRating.toFixed(4)))
+    }
+    if (row[0] === 'refArmorEff') {
+      row[3] = n(Number(ctx.referenceArmor.toFixed(4)))
+    }
     if (row[0] === 'mainHit (power armor)') {
       row[3] = n(
-        Number(calculatePowerEffectiveDamage(stats.attack, reference.armor).toFixed(4)),
+        Number(
+          calculatePowerEffectiveDamage(stats.attack, ctx.referenceArmor, ctx.armorRating).toFixed(4),
+        ),
       )
     }
     if (row[0] === 'СИЛА (power)') {

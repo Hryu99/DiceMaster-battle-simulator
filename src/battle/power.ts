@@ -8,7 +8,14 @@ export interface ReferenceStatScales {
   armor: number
 }
 
-/** Фиксированный профиль для диагностик Power Lab (не влияет на displayPower). */
+/** Масштаб мягкой брони в силе от стата armor героя (без tier/локации). */
+export interface PowerArmorContext {
+  armorScale: number
+  armorRating: number
+  referenceArmor: number
+}
+
+/** Фиксированный профиль для диагностик Power Lab (номинал при armor = armorScaleBaseline). */
 export interface PowerReferenceProfile {
   attack: number
   armor: number
@@ -33,52 +40,80 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
 }
 
 /**
+ * Контекст брони для модели B: при высоких статах refArmor и K растут с armor героя,
+ * чтобы сила не завышала танков на tier ~1000 при фиксированных константах @150.
+ */
+export function getPowerArmorContext(heroArmor: number): PowerArmorContext {
+  const powerConfig = BATTLE_CONFIG.power
+  const armorScale = Math.max(1, heroArmor / powerConfig.armorScaleBaseline)
+
+  return {
+    armorScale,
+    armorRating: powerConfig.armorRatingConstant * Math.pow(armorScale, powerConfig.armorContextScaleExponent),
+    referenceArmor: powerConfig.referenceArmorForOffense * armorScale,
+  }
+}
+
+/**
  * Доля поглощения бронёй в формуле силы (модель B).
  * Не используется в бою — см. calculateArmorReducedDamage.
  */
-export function calculatePowerArmorMitigation(armor: number): number {
-  const rating = BATTLE_CONFIG.power.armorRatingConstant
+export function calculatePowerArmorMitigation(armor: number, armorRating?: number): number {
+  const rating = armorRating ?? BATTLE_CONFIG.power.armorRatingConstant
 
   return armor / (armor + rating)
 }
 
 /** Урон/вклад после «силовой» брони: linear по attack, мягче боевой гиперболы. */
-export function calculatePowerEffectiveDamage(attack: number, targetArmor: number): number {
+export function calculatePowerEffectiveDamage(
+  attack: number,
+  targetArmor: number,
+  armorRating?: number,
+): number {
   if (attack <= 0) {
     return 0
   }
 
-  return attack * (1 - calculatePowerArmorMitigation(targetArmor))
+  return attack * (1 - calculatePowerArmorMitigation(targetArmor, armorRating))
 }
 
-/** Пул выживаемости: HP^exp × (1 + armor/K). Монотонен по health и armor. */
+/** Пул выживаемости: HP^exp × (1 + armor/K_eff). Монотонен по health и armor. */
 export function calculatePowerDefenseScore(health: number, armor: number): number {
-  const { armorRatingConstant, healthDefenseExponent } = BATTLE_CONFIG.power
+  const { healthDefenseExponent } = BATTLE_CONFIG.power
+  const { armorRating } = getPowerArmorContext(armor)
 
-  return (
-    Math.pow(Math.max(1, health), healthDefenseExponent) * (1 + armor / armorRatingConstant)
-  )
+  return Math.pow(Math.max(1, health), healthDefenseExponent) * (1 + armor / armorRating)
 }
 
-export function getPowerReferenceProfile(): PowerReferenceProfile {
-  const powerConfig = BATTLE_CONFIG.power
+export function getPowerReferenceProfile(heroArmor?: number): PowerReferenceProfile {
+  const armor = heroArmor ?? BATTLE_CONFIG.power.armorScaleBaseline
+  const context = getPowerArmorContext(armor)
 
   return {
     attack: GEAR_CONFIG.playerBase.attack,
-    armor: powerConfig.referenceArmorForOffense,
+    armor: context.referenceArmor,
   }
 }
 
 export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
   const stats = normalizeStats(statsInput)
   const powerConfig = BATTLE_CONFIG.power
-  const referenceArmor = powerConfig.referenceArmorForOffense
-  const offenseHit = calculatePowerEffectiveDamage(stats.attack, referenceArmor)
+  const armorContext = getPowerArmorContext(stats.armor)
+  const referenceArmor = armorContext.referenceArmor
+  const offenseHit = calculatePowerEffectiveDamage(
+    stats.attack,
+    referenceArmor,
+    armorContext.armorRating,
+  )
   const expectedHitDamage =
     offenseHit * (1 + stats.critChance * (stats.critDamage - 1) * powerConfig.critEfficiency)
   const effectiveAttackSpeed = calculateEffectiveAttackSpeed(stats.attackSpeed)
   const dps = expectedHitDamage * effectiveAttackSpeed
-  const areaHit = calculatePowerEffectiveDamage(stats.attack * stats.areaAttack, referenceArmor)
+  const areaHit = calculatePowerEffectiveDamage(
+    stats.attack * stats.areaAttack,
+    referenceArmor,
+    armorContext.armorRating,
+  )
   const areaDps =
     areaHit * powerConfig.averageExtraTargets * powerConfig.areaEfficiency * effectiveAttackSpeed
   const areaMultiplier = dps > 0 ? (dps + areaDps) / dps : 1
@@ -90,7 +125,11 @@ export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
     sustain /
     Math.max(1, offensePressure + defenseScore / powerConfig.sustainEffectiveHealthDivisor)
   const thornsValue =
-    calculatePowerEffectiveDamage(stats.armor * stats.thorns, referenceArmor) *
+    calculatePowerEffectiveDamage(
+      stats.armor * stats.thorns,
+      referenceArmor,
+      armorContext.armorRating,
+    ) *
     getReferenceIncomingAttackSpeedBase() *
     powerConfig.thornsEfficiency
   const offenseScore = offensePressure + thornsValue

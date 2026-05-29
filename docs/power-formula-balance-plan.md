@@ -336,6 +336,45 @@ Baseline: Avg power **150**; Arm/Ref **1,17**; A/Ref Arm **1,48**; Hit/Ref **1,4
 | `attackSpeedEfficiency` | 0,76 | **0,72** |
 | `critEfficiency` | 0,58 | **0,59** |
 
+### Прогон B-2 — результат Stress (**принят @150**)
+
+| Тег | Win rate | N |
+| --- | ---: | ---: |
+| tank-armor | 60,7% | 16 |
+| crit-heavy | 54,0% | 21 |
+| thorns | 53,9% | 13 |
+| attack-heavy | 49,0% | 29 |
+| speed-heavy | 48,7% | 24 |
+| sustain | 47,7% | 23 |
+| tank-health | 47,4% | 20 |
+
+**Размах по тегам: 13,3 п.п.** (47,4% → 60,7%). Цель ~45–55% по сути достигнута.
+
+**Единственный заметный выброс:** `tank-armor` (~61%) — в бою чуть сильнее, чем даёт сила; при желании микро-правка: `armorRatingConstant` **82 → 90** (без смены остального).
+
+**Диагностика:** у победителей по тегам высокий `DPS/EHP` (attack-heavy **0,43**, speed **0,46**) — offense в симе ценнее, чем `defenseScore^0,4`; это ожидаемо для модели B.
+
+### Stress @1000 (до armorScale) — перекос
+
+| Тег | Win rate |
+| --- | ---: |
+| attack-heavy | 62,7% |
+| tank-armor | **25,4%** |
+
+**Причина:** `refArmor=29` и `K=60` калиброваны на ~40 брони; при ~288 брони формула завышает `defenseScore` (танки) и завышает offense vs нереальной тонкой «цели».
+
+### Прогон B-3 — `getPowerArmorContext(armor)`
+
+```text
+armorScale = max(1, armor / armorScaleBaseline)   // baseline 40, только стат героя
+K_eff = armorRatingConstant × armorScale^0.65
+refArmorEff = referenceArmorForOffense × armorScale
+```
+
+Дальше: повтор Stress **@150** (регрессия) и **@1000** с тем же seed.
+
+Источник конфига B-2: `src/battle/config.ts` + `healthDefenseExponent` в `calculatePowerDefenseScore`.
+
 ---
 
 ## Зафиксированный конфиг (прогон 3, устарел — до модели B)

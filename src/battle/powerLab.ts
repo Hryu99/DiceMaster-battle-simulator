@@ -276,7 +276,7 @@ export function createPowerLabDiagnostics(
   stats: CombatantStats,
   breakdown: PowerBreakdown,
 ): PowerLabDiagnostics {
-  const reference = getPowerReferenceProfile()
+  const reference = getPowerReferenceProfile(stats.armor)
 
   return {
     attack: stats.attack,
