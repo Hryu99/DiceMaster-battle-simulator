@@ -10,9 +10,8 @@ export const BATTLE_CONFIG = {
   minDamageMultiplier: 0.05, // минимальная доля входящего урона после брони
   power: {
     averageExtraTargets: 1.5, // среднее число доп. целей для массовой атаки в силе
-    opponentScaleAttackWeight: 0.55, // вес атаки в S (масштаб эталонного противника)
-    opponentScaleHealthWeight: 0.37, // вес здоровья в S
-    opponentScaleArmorWeight: 0.08, // вес брони в S
+  /** Базовый тир силы: при referenceTierPower = это значение эталон = playerBase (scale 1). */
+    referenceTierBasePower: 150,
     minHitImpactMultiplier: 0.75, // нижняя граница множителя удара
     hitImpactEfficiency: 0.5, // чувствительность hit impact к размеру удара
     maxHitImpactMultiplier: 1.6, // верхняя граница множителя удара

@@ -3,10 +3,10 @@ import { BATTLE_CONFIG } from './config'
 import { calculateArmorReducedDamage } from './damage'
 import {
   calculatePower,
+  getFixedReferenceOpponent,
   getReferenceIncomingAttackSpeedBase,
-  getReferenceOpponentScale,
   getReferenceStatScales,
-  getScaledReferenceOpponent,
+  getReferenceTierScale,
 } from './power'
 import { GEAR_CONFIG } from './gear/gearConfig'
 import type { CombatantStats } from './types'
@@ -47,7 +47,7 @@ describe('calculatePower', () => {
     const baseBreakdown = calculatePower(baseStats)
     const areaBreakdown = calculatePower({ ...baseStats, areaAttack: 80 })
     const expectedAreaDps =
-      calculateArmorReducedDamage(30 * 0.8, getScaledReferenceOpponent(baseStats).armor) *
+      calculateArmorReducedDamage(30 * 0.8, getFixedReferenceOpponent().armor) *
       BATTLE_CONFIG.power.averageExtraTargets *
       BATTLE_CONFIG.power.areaEfficiency *
       1
@@ -67,7 +67,7 @@ describe('calculatePower', () => {
     expect(breakdown.expectedHitDamage).toBeCloseTo(
       calculateArmorReducedDamage(
         100,
-        getScaledReferenceOpponent({ ...baseStats, attack: 100, critChance: 100, critDamage: 200 }).armor,
+        getFixedReferenceOpponent().armor,
       ) *
         (1 + BATTLE_CONFIG.power.critEfficiency),
     )
@@ -84,8 +84,7 @@ describe('calculatePower', () => {
     const expectedAreaDps =
       calculateArmorReducedDamage(
         100,
-        getScaledReferenceOpponent({ ...baseStats, attack: 100, critChance: 100, critDamage: 300, areaAttack: 100 })
-          .armor,
+        getFixedReferenceOpponent().armor,
       ) *
       BATTLE_CONFIG.power.averageExtraTargets *
       BATTLE_CONFIG.power.areaEfficiency *
@@ -105,7 +104,7 @@ describe('calculatePower', () => {
     const breakdown = calculatePower({ ...baseStats, attackSpeed: 200, critChance: 0 })
     const expectedHitDamage = calculateArmorReducedDamage(
       baseStats.attack,
-      getScaledReferenceOpponent({ ...baseStats, attackSpeed: 200, critChance: 0 }).armor,
+      getFixedReferenceOpponent().armor,
     )
     const expectedAttackSpeed = 1 + (2 - 1) * BATTLE_CONFIG.power.attackSpeedEfficiency
 
@@ -179,7 +178,7 @@ describe('calculatePower', () => {
 
   it('calculates effective health through the shared armor damage model', () => {
     const breakdown = calculatePower(baseStats)
-    const opponent = getScaledReferenceOpponent(baseStats)
+    const opponent = getFixedReferenceOpponent()
     const incomingDamageAfterArmor = calculateArmorReducedDamage(opponent.attack, baseStats.armor)
 
     expect(breakdown.effectiveHealth).toBeCloseTo(
@@ -187,30 +186,25 @@ describe('calculatePower', () => {
     )
   })
 
-  it('uses scale 1 and mirrors playerBase when hero stats match playerBase', () => {
-    const mirrorStats = {
-      attack: GEAR_CONFIG.playerBase.attack,
-      health: GEAR_CONFIG.playerBase.health,
-      armor: GEAR_CONFIG.playerBase.defence,
-      attackSpeed: 100,
-      critChance: 0,
-      critDamage: 150,
-      lifesteal: 0,
-      areaAttack: 0,
-      thorns: 0,
-    }
-
-    expect(getReferenceStatScales(mirrorStats)).toEqual({ attack: 1, health: 1, armor: 1 })
-    expect(getReferenceOpponentScale(mirrorStats)).toBeCloseTo(1)
-    expect(getScaledReferenceOpponent(mirrorStats)).toEqual({
+  it('uses tier scale 1 and mirrors playerBase at default reference tier', () => {
+    expect(getReferenceTierScale()).toBeCloseTo(1)
+    expect(getFixedReferenceOpponent()).toEqual({
       attack: GEAR_CONFIG.playerBase.attack,
       health: GEAR_CONFIG.playerBase.health,
       armor: GEAR_CONFIG.playerBase.defence,
     })
-    expect(getScaledReferenceOpponent(mirrorStats).attack).toBeCloseTo(GEAR_CONFIG.playerBase.attack)
   })
 
-  it('combines per-stat scales with weighted geometric mean', () => {
+  it('scales fixed reference opponent with reference tier power', () => {
+    const tierScale = getReferenceTierScale(500)
+    const opponent = getFixedReferenceOpponent({ referenceTierPower: 500 })
+
+    expect(tierScale).toBeCloseTo(500 / 150)
+    expect(opponent.attack).toBeCloseTo(GEAR_CONFIG.playerBase.attack * tierScale)
+    expect(opponent.armor).toBeCloseTo(GEAR_CONFIG.playerBase.defence * tierScale)
+  })
+
+  it('still exposes hero-to-base ratios for diagnostics', () => {
     const heroStats = {
       attack: 60,
       health: 200,
@@ -223,17 +217,31 @@ describe('calculatePower', () => {
       thorns: 0,
     }
 
-    expect(getReferenceStatScales(heroStats).attack).toBeCloseTo(2.4)
-    expect(getReferenceStatScales(heroStats).health).toBeCloseTo(2)
-    expect(getReferenceStatScales(heroStats).armor).toBeCloseTo(3)
+    expect(getReferenceStatScales(heroStats)).toEqual({
+      attack: 2.4,
+      health: 2,
+      armor: 3,
+    })
+    expect(getFixedReferenceOpponent().attack).toBe(GEAR_CONFIG.playerBase.attack)
+  })
 
-    const scale = getReferenceOpponentScale(heroStats)
-    expect(scale).toBeCloseTo(2.38, 1)
+  it('increases power when attack grows on a tank-heavy build', () => {
+    const tankStats: CombatantStats = {
+      attack: 123,
+      health: 542,
+      armor: 422,
+      attackSpeed: 123,
+      critChance: 5,
+      critDamage: 452,
+      lifesteal: 42,
+      areaAttack: 120,
+      thorns: 200,
+    }
 
-    const opponent = getScaledReferenceOpponent(heroStats)
-    expect(opponent.attack).toBeCloseTo(25 * scale, 1)
-    expect(opponent.health).toBeCloseTo(100 * scale, 0)
-    expect(opponent.armor).toBeCloseTo(10 * scale, 1)
+    const lowerAttackPower = calculatePower(tankStats).power
+    const higherAttackPower = calculatePower({ ...tankStats, attack: 150 }).power
+
+    expect(higherAttackPower).toBeGreaterThan(lowerAttackPower)
   })
 
   it('values thorns as a percentage of armor', () => {
@@ -242,7 +250,7 @@ describe('calculatePower', () => {
     const expectedThornsRawDamage = 200 * 0.1
 
     expect(breakdown.thornsValue).toBeCloseTo(
-      calculateArmorReducedDamage(expectedThornsRawDamage, getScaledReferenceOpponent(statsWithThorns).armor) *
+      calculateArmorReducedDamage(expectedThornsRawDamage, getFixedReferenceOpponent().armor) *
         getReferenceIncomingAttackSpeedBase() *
         BATTLE_CONFIG.power.thornsEfficiency,
     )

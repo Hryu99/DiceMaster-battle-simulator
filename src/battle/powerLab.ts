@@ -1,4 +1,4 @@
-import { calculatePower, getScaledReferenceOpponent } from './power'
+import { calculatePower, getFixedReferenceOpponent, type PowerCalculationOptions } from './power'
 import { SeededRandom, type RandomSource } from './rng'
 import { runSimulations } from './simulator'
 import type { Combatant, CombatantStats, PowerBreakdown, Team } from './types'
@@ -142,13 +142,14 @@ export function generateRandomBuilds(config: PowerLabConfig): PowerLabBuild[] {
   return Array.from({ length: config.candidateCount }, (_, index) => {
     const stats = generateStats(config.statRanges, rng)
     const combatant = createLabCombatant(`build-${index + 1}`, stats)
-    const breakdown = calculatePower(stats)
+    const powerOptions: PowerCalculationOptions = { referenceTierPower: config.targetPower }
+    const breakdown = calculatePower(stats, powerOptions)
 
     return {
       combatant,
       power: breakdown.power,
       tags: tagBuild(stats, tagScale),
-      diagnostics: createPowerLabDiagnostics(stats, breakdown),
+      diagnostics: createPowerLabDiagnostics(stats, breakdown, config.targetPower),
     }
   })
 }
@@ -275,8 +276,9 @@ export function summarizeOverall(builds: PowerLabBuildResult[]): PowerLabOverall
 export function createPowerLabDiagnostics(
   stats: CombatantStats,
   breakdown: PowerBreakdown,
+  referenceTierPower?: number,
 ): PowerLabDiagnostics {
-  const opponent = getScaledReferenceOpponent(stats)
+  const opponent = getFixedReferenceOpponent({ referenceTierPower })
 
   return {
     attack: stats.attack,

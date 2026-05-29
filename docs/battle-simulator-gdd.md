@@ -288,31 +288,21 @@ Seed позволяет получать повторяемые результа
 
 Выживаемость считается через тот же расчет брони, что и в бою, а не через линейную прибавку.
 
-Для оценки брони сначала строится **эталонный противник** (`gearConfig.playerBase`) с единым масштабом `S`.
-
-Отдельные отношения герой / эталон:
+Для оценки брони используется **фиксированный эталонный противник** (`gearConfig.playerBase`), масштабированный только по **тиру силы**, а не по статам героя.
 
 ```text
-attackScale = hero.attack / playerBase.attack
-healthScale = hero.health / playerBase.health
-armorScale  = hero.armor / playerBase.defence
+tierScale = referenceTierPower / referenceTierBasePower   // по умолчанию 150 / 150 = 1
+oppAttack = playerBase.attack * tierScale
+oppHealth = playerBase.health * tierScale
+oppArmor  = playerBase.defence * tierScale
 ```
 
-Общий scale — **взвешенное геометрическое среднее** (`config.ts`: `opponentScaleAttackWeight` 0.45, `opponentScaleHealthWeight` 0.35, `opponentScaleArmorWeight` 0.20):
+- В UI и Excel по умолчанию `referenceTierPower = 150` → эталон `25 / 100 / 10`.
+- В Power Lab / Gear Lab эталон берётся из `targetPower` прогона (150, 500, 1000 и т.д.).
 
-```text
-S = attackScale^0.45 * healthScale^0.35 * armorScale^0.20
-```
+Отношения герой / `playerBase` (`attackScale`, `healthScale`, `armorScale`) остаются **только для диагностик** (Arm/Ref Arm в отчётах), на эталонного врага не влияют.
 
-Эталонный противник для формулы:
-
-```text
-oppAttack = playerBase.attack * S
-oppHealth = playerBase.health * S
-oppArmor  = playerBase.defence * S
-```
-
-Пример: герой `60 / 200 / 30` при эталоне `25 / 100 / 10` → `S ≈ 2.38` → противник `≈ 59.5 / 238 / 23.8` (сглаживает перекосы).
+Так любой рост стата героя даёт рост расчётной силы (монотонность по primaries и secondary в своих каналах).
 
 Далее для формулы силы:
 
@@ -321,9 +311,7 @@ referenceIncomingHit = oppAttack
 referenceEnemyArmor = oppArmor
 ```
 
-При зеркальных статах (`25 / 100 / 10`) → `S = 1`, противник = `playerBase`.
-
-Веса scale — в `config.ts`. Менять эталон — через `gearConfig.playerBase`.
+Параметры: `referenceTierBasePower` в `config.ts`, базовые статы эталона — в `gearConfig.playerBase`.
 
 Затем формула смотрит, сколько урона такой удар нанесет после брони персонажа:
 
@@ -344,10 +332,10 @@ effectiveHealth = health * referenceIncomingHit / incomingDamageAfterArmor
 referenceEnemyArmorBase = playerBase.defence
 ```
 
-Эталонная броня врага для урона билда задаётся масштабом `S` от статов героя (см. эталонного противника выше):
+Эталонная броня врага для урона билда — от фиксированного эталона (см. выше):
 
 ```text
-referenceEnemyArmor = playerBase.defence * S
+referenceEnemyArmor = playerBase.defence * tierScale
 baseHitAfterArmor = damageAfterArmor(attack, referenceEnemyArmor)
 expectedHitDamage = baseHitAfterArmor * (1 + critChance * (critDamage - 1) * 0.85)
 ```

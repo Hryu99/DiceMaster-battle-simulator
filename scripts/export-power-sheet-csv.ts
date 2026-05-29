@@ -16,8 +16,8 @@ import { GEAR_CONFIG } from '../src/battle/gear/gearConfig.ts'
 import { calculateArmorReducedDamage } from '../src/battle/damage.ts'
 import {
   calculatePower,
-  getReferenceOpponentScale,
-  getScaledReferenceOpponent,
+  getFixedReferenceOpponent,
+  getReferenceTierScale,
 } from '../src/battle/power.ts'
 import type { CombatantStats } from '../src/battle/types.ts'
 
@@ -97,9 +97,9 @@ const ROW_KEYS = new Set([
   'cfgPlayerBaseDef',
   'cfgPlayerBaseSpd',
   'cfgAvgExtraTargets',
-  'cfgOppScaleAtkW',
-  'cfgOppScaleHpW',
-  'cfgOppScaleArmW',
+  'cfgRefTierBase',
+  'refTierPower',
+  'tierScale',
   'cfgCritEff',
   'cfgAtkSpdEff',
   'cfgHitImpactEff',
@@ -198,6 +198,12 @@ function buildRows(): CsvRow[] {
   addRow('Lifesteal, %', '0', '', 'lifesteal')
   addRow('Mass Attack (area), %', '0', '', 'area')
   addRow('Thorns, %', '0', '', 'thorns')
+  addRow(
+    'Reference tier power',
+    String(p.referenceTierBasePower),
+    'тир силы для эталонного врага (как targetPower в Power Lab)',
+    'refTierPower',
+  )
   addRow('', '', '')
 
   addRow(
@@ -246,22 +252,10 @@ function buildRows(): CsvRow[] {
     'cfgAvgExtraTargets',
   )
   addRow(
-    'opponentScaleAttackWeight',
-    n(p.opponentScaleAttackWeight),
-    'вес атаки в S (масштаб эталонного противника)',
-    'cfgOppScaleAtkW',
-  )
-  addRow(
-    'opponentScaleHealthWeight',
-    n(p.opponentScaleHealthWeight),
-    'вес здоровья в S',
-    'cfgOppScaleHpW',
-  )
-  addRow(
-    'opponentScaleArmorWeight',
-    n(p.opponentScaleArmorWeight),
-    'вес брони в S',
-    'cfgOppScaleArmW',
+    'referenceTierBasePower',
+    n(p.referenceTierBasePower),
+    'базовый тир: при ref tier = это значение scale = 1',
+    'cfgRefTierBase',
   )
   addRow('critEfficiency', n(p.critEfficiency), 'доля крит-урона, учитываемая в expected hit', 'cfgCritEff')
   addRow(
@@ -323,21 +317,33 @@ function buildRows(): CsvRow[] {
   addRow('scaleHealth (герой / эталон)', `=${b(R.normHp)}/${$(R.cfgPlayerBaseHp)}`, 'HP героя / эталон', '', 'scaleHp')
   addRow('scaleArmor (герой / эталон)', `=${b(R.normArm)}/${$(R.cfgPlayerBaseDef)}`, 'броня героя / эталон', '', 'scaleArm')
   addRow(
-    'opponentScale S (взвеш. геом. среднее)',
-    `=POWER(${b(R.scaleAtk)};${$(R.cfgOppScaleAtkW)})*POWER(${b(R.scaleHp)};${$(R.cfgOppScaleHpW)})*POWER(${b(R.scaleArm)};${$(R.cfgOppScaleArmW)})`,
-    'общий масштаб зеркального врага',
+    'referenceTierScale',
+    `=${b(R.refTierPower)}/${$(R.cfgRefTierBase)}`,
+    'эталон = playerBase × tierScale; не зависит от статов героя',
     '',
-    'oppScale',
+    'tierScale',
   )
   addRow(
-    'oppAttack (эталон × S)',
-    `=${$(R.cfgPlayerBaseAtk)}*${b(R.oppScale)}`,
+    'oppAttack (эталон × tierScale)',
+    `=${$(R.cfgPlayerBaseAtk)}*${b(R.tierScale)}`,
     'условный входящий удар по тебе',
     '',
     'oppAtk',
   )
-  addRow('oppHealth (эталон × S)', `=${$(R.cfgPlayerBaseHp)}*${b(R.oppScale)}`, 'HP эталона (справочно)', '', 'oppHp')
-  addRow('oppArmor (эталон × S)', `=${$(R.cfgPlayerBaseDef)}*${b(R.oppScale)}`, 'броня врага для твоего урона', '', 'oppArm')
+  addRow(
+    'oppHealth (эталон × tierScale)',
+    `=${$(R.cfgPlayerBaseHp)}*${b(R.tierScale)}`,
+    'HP эталона (справочно)',
+    '',
+    'oppHp',
+  )
+  addRow(
+    'oppArmor (эталон × tierScale)',
+    `=${$(R.cfgPlayerBaseDef)}*${b(R.tierScale)}`,
+    'броня врага для твоего урона',
+    '',
+    'oppArm',
+  )
   addRow(
     'incomingOnYou (после своей брони)',
     armorFormula(b(R.oppAtk), R.normArm),
@@ -431,31 +437,32 @@ function statsFromSheetDefaults(): CombatantStats {
   return { ...DEFAULT_SHEET_HERO_STATS }
 }
 
-function expectedIncomingOnYou(): number {
+function expectedIncomingOnYou(tierPower: number): number {
   const stats = statsFromSheetDefaults()
-  const opponent = getScaledReferenceOpponent(stats)
+  const opponent = getFixedReferenceOpponent({ referenceTierPower: tierPower })
 
   return calculateArmorReducedDamage(opponent.attack, stats.armor)
 }
 
 function attachValidationChecks(): void {
   const stats = statsFromSheetDefaults()
-  const breakdown = calculatePower(stats)
-  const incoming = expectedIncomingOnYou()
-  const opponent = getScaledReferenceOpponent(stats)
-  const defaultScale = getReferenceOpponentScale(stats)
+  const tierPower = BATTLE_CONFIG.power.referenceTierBasePower
+  const breakdown = calculatePower(stats, { referenceTierPower: tierPower })
+  const incoming = expectedIncomingOnYou(tierPower)
+  const opponent = getFixedReferenceOpponent({ referenceTierPower: tierPower })
+  const tierScale = getReferenceTierScale(tierPower)
 
   for (const row of rows) {
-    if (row[0] === 'opponentScale S (взвеш. геом. среднее)') {
-      row[3] = n(Number(defaultScale.toFixed(4)))
+    if (row[0] === 'referenceTierScale') {
+      row[3] = n(Number(tierScale.toFixed(4)))
     }
-    if (row[0] === 'oppAttack (эталон × S)') {
+    if (row[0] === 'oppAttack (эталон × tierScale)') {
       row[3] = n(opponent.attack)
     }
-    if (row[0] === 'oppHealth (эталон × S)') {
+    if (row[0] === 'oppHealth (эталон × tierScale)') {
       row[3] = n(opponent.health)
     }
-    if (row[0] === 'oppArmor (эталон × S)') {
+    if (row[0] === 'oppArmor (эталон × tierScale)') {
       row[3] = n(opponent.armor)
     }
     if (row[0] === 'СИЛА (power)') {
@@ -483,7 +490,9 @@ function main(): void {
   const csv = [header, ...body].join('\n') + '\n'
   writeFileSync(OUT_PATH, csv, 'utf8')
 
-  const examplePower = calculatePower(statsFromSheetDefaults()).power
+  const examplePower = calculatePower(statsFromSheetDefaults(), {
+    referenceTierPower: BATTLE_CONFIG.power.referenceTierBasePower,
+  }).power
   console.log(`Wrote ${OUT_PATH}`)
   console.log(
     `Пример (${DEFAULT_SHEET_HERO_STATS.attack}/${DEFAULT_SHEET_HERO_STATS.health}/${DEFAULT_SHEET_HERO_STATS.armor}): power ≈ ${n(Number(examplePower.toFixed(2)))}`,
@@ -491,7 +500,9 @@ function main(): void {
   console.log(
     `Ключевые строки: oppAttack B${R.oppAtk}, incomingOnYou B${R.incomingOnYou}, EHP B${R.ehp}, СИЛА B${R.power}`,
   )
-  console.log(`incomingOnYou (код) ≈ ${n(Number(expectedIncomingOnYou().toFixed(2)))} — должно совпасть с B${R.incomingOnYou}`)
+  console.log(
+    `incomingOnYou (код) ≈ ${n(Number(expectedIncomingOnYou(BATTLE_CONFIG.power.referenceTierBasePower).toFixed(2)))} — должно совпасть с B${R.incomingOnYou}`,
+  )
 }
 
 main()

@@ -12,6 +12,7 @@ Crit Damage, %;150;150 = ×1,5 урона на крите;
 Lifesteal, %;0;;
 Mass Attack (area), %;0;;
 Thorns, %;0;;
+Reference tier power;150;тир силы для эталонного врага (как targetPower в Power Lab);
 ;;;
 armorDamageConstant;1;константа K в формуле снижения урона бронёй;
 minDamageMultiplier;0,05;минимальная доля входящего урона после брони;
@@ -23,9 +24,7 @@ playerBaseSpeed (база incoming atk speed);1;playerBase.speed/100 — мно�
 ;;;
 —— КОНФИГ СИЛЫ (config.ts) ——;;подсказки = комментарии в config.ts;
 averageExtraTargets;1,5;среднее число доп. целей для массовой атаки в силе;
-opponentScaleAttackWeight;0,55;вес атаки в S (масштаб эталонного противника);
-opponentScaleHealthWeight;0,37;вес здоровья в S;
-opponentScaleArmorWeight;0,08;вес брони в S;
+referenceTierBasePower;150;базовый тир: при ref tier = это значение scale = 1;
 critEfficiency;0,46;доля крит-урона, учитываемая в expected hit;
 attackSpeedEfficiency;0,63;эффективность скорости атаки выше 100%;
 hitImpactEfficiency;0,5;чувствительность hit impact к размеру удара;
@@ -50,29 +49,29 @@ area;"=MIN(1;MAX(0;B13/100))";;
 th;"=MAX(0;B14/100)";;
 ;;;
 —— РАСЧЁТ ——;;"кратко: что считает строка; колонка D — сверка с Node";
-scaleAttack (герой / эталон);=B42/$B$19;атака героя / эталон;
-scaleHealth (герой / эталон);=B43/$B$20;HP героя / эталон;
-scaleArmor (герой / эталон);=B44/$B$21;броня героя / эталон;
-opponentScale S (взвеш. геом. среднее);"=POWER(B53;$B$26)*POWER(B54;$B$27)*POWER(B55;$B$28)";общий масштаб зеркального врага;2,2838
-oppAttack (эталон × S);=$B$19*B56;условный входящий удар по тебе;57,09617178183667
-oppHealth (эталон × S);=$B$20*B56;HP эталона (справочно);228,38468712734667
-oppArmor (эталон × S);=$B$21*B56;броня врага для твоего урона;22,838468712734667
-incomingOnYou (после своей брони);"=IF((B57)<=0;0;MAX((B57)*$B$17;(B57)*$B$16/($B$16+MAX(0;B44)/(B57))))";фактический урон oppAttack по тебе;37,4296
-effectiveHealth (EHP);=B43*B57/B60;эффективное HP vs эталонный удар;305,0859
-mainHitAfterArmor;"=IF((B42)<=0;0;MAX((B42)*$B$17;(B42)*$B$16/($B$16+MAX(0;B59)/(B42))))";твой удар после брони oppArmor;
-expectedHitDamage;=B62*(1+B46*(B47-1)*$B$29);средний удар с критом (expected);
-effectiveAttackSpeed;"=MAX(1E-9;1+(B45-1)*$B$30)";скорость атаки >100% с коэфф.;
-dps (main, без hitImpact);=B63*B64;main DPS до hit impact;43,4581
-hitImpactRatio;=B63/B57;твой удар / удар по тебе;
-hitImpactMultiplier;"=MIN($B$33;MAX($B$32;1+$B$31*(B66-1)))";бонус крупного, штраф мелкого удара;
-weightedDps;=B65*B67;DPS с hit impact;
-areaHitAfterArmor;"=IF((B42*B49)<=0;0;MAX((B42*B49)*$B$17;(B42*B49)*$B$16/($B$16+MAX(0;B59)/(B42*B49))))";урон area через броню врага;
-areaDps;=B69*$B$25*$B$34*B64;вклад area в давление;
-effectiveDps;=B68+B70;итоговое давление урона;
-sustain (только от main dps);=B65*B48*$B$35;хил только от обычной атаки;
-sustainMultiplier;"=1+B72/MAX(1;B71+B61/$B$37)";множитель силы от lifesteal;
-thornsRaw;=B44*B50;сырой урон шипов;
-thornsAfterArmor;"=IF((B74)<=0;0;MAX((B74)*$B$17;(B74)*$B$16/($B$16+MAX(0;B59)/(B74))))";шипы после брони врага;
-thornsValue;=B75*$B$22*$B$36;шипы в pressure;
-pressure;=B71+B76;урон + шипы;
-СИЛА (power);"=POWER(B61;$B$38)*POWER(B77;$B$39)*B73";EHP^def × pressure^off × sustain;108,0508
+scaleAttack (герой / эталон);=B41/$B$20;атака героя / эталон;
+scaleHealth (герой / эталон);=B42/$B$21;HP героя / эталон;
+scaleArmor (герой / эталон);=B43/$B$22;броня героя / эталон;
+referenceTierScale;=B15/$B$27;"эталон = playerBase × tierScale; не зависит от статов героя";1
+oppAttack (эталон × tierScale);=$B$20*B55;условный входящий удар по тебе;25
+oppHealth (эталон × tierScale);=$B$21*B55;HP эталона (справочно);100
+oppArmor (эталон × tierScale);=$B$22*B55;броня врага для твоего урона;10
+incomingOnYou (после своей брони);"=IF((B56)<=0;0;MAX((B56)*$B$18;(B56)*$B$17/($B$17+MAX(0;B43)/(B56))))";фактический урон oppAttack по тебе;11,3636
+effectiveHealth (EHP);=B42*B56/B59;эффективное HP vs эталонный удар;440
+mainHitAfterArmor;"=IF((B41)<=0;0;MAX((B41)*$B$18;(B41)*$B$17/($B$17+MAX(0;B58)/(B41))))";твой удар после брони oppArmor;
+expectedHitDamage;=B61*(1+B45*(B46-1)*$B$28);средний удар с критом (expected);
+effectiveAttackSpeed;"=MAX(1E-9;1+(B44-1)*$B$29)";скорость атаки >100% с коэфф.;
+dps (main, без hitImpact);=B62*B63;main DPS до hit impact;51,4286
+hitImpactRatio;=B62/B56;твой удар / удар по тебе;
+hitImpactMultiplier;"=MIN($B$32;MAX($B$31;1+$B$30*(B65-1)))";бонус крупного, штраф мелкого удара;
+weightedDps;=B64*B66;DPS с hit impact;
+areaHitAfterArmor;"=IF((B41*B48)<=0;0;MAX((B41*B48)*$B$18;(B41*B48)*$B$17/($B$17+MAX(0;B58)/(B41*B48))))";урон area через броню врага;
+areaDps;=B68*$B$26*$B$33*B63;вклад area в давление;
+effectiveDps;=B67+B69;итоговое давление урона;
+sustain (только от main dps);=B64*B47*$B$34;хил только от обычной атаки;
+sustainMultiplier;"=1+B71/MAX(1;B70+B60/$B$36)";множитель силы от lifesteal;
+thornsRaw;=B43*B49;сырой урон шипов;
+thornsAfterArmor;"=IF((B73)<=0;0;MAX((B73)*$B$18;(B73)*$B$17/($B$17+MAX(0;B58)/(B73))))";шипы после брони врага;
+thornsValue;=B74*$B$23*$B$35;шипы в pressure;
+pressure;=B70+B75;урон + шипы;
+СИЛА (power);"=POWER(B60;$B$37)*POWER(B76;$B$38)*B72";EHP^def × pressure^off × sustain;185,9822

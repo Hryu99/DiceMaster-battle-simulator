@@ -15,6 +15,12 @@ export interface ScaledReferenceOpponent {
   armor: number
 }
 
+/** Параметры расчёта силы: эталонный враг фиксирован по тиру, не от статов героя. */
+export interface PowerCalculationOptions {
+  /** Целевая сила тира (как targetPower в Power Lab). По умолчанию — referenceTierBasePower. */
+  referenceTierPower?: number
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
@@ -33,10 +39,39 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
   }
 }
 
-export function calculatePower(statsInput: CombatantStats): PowerBreakdown {
+export function getReferenceTierScale(referenceTierPower?: number): number {
+  const baseTier = BATTLE_CONFIG.power.referenceTierBasePower
+
+  return Math.max(Number.EPSILON, (referenceTierPower ?? baseTier) / baseTier)
+}
+
+/** Эталонный противник: playerBase × (tierPower / referenceTierBasePower). Не зависит от статов героя. */
+export function getFixedReferenceOpponent(options?: PowerCalculationOptions): ScaledReferenceOpponent {
+  const base = GEAR_CONFIG.playerBase
+  const scale = getReferenceTierScale(options?.referenceTierPower)
+
+  return {
+    attack: base.attack * scale,
+    health: base.health * scale,
+    armor: base.defence * scale,
+  }
+}
+
+/** @deprecated Используйте getFixedReferenceOpponent — эталон больше не масштабируется от билда. */
+export function getScaledReferenceOpponent(
+  _statsInput?: CombatantStats,
+  options?: PowerCalculationOptions,
+): ScaledReferenceOpponent {
+  return getFixedReferenceOpponent(options)
+}
+
+export function calculatePower(
+  statsInput: CombatantStats,
+  options?: PowerCalculationOptions,
+): PowerBreakdown {
   const stats = normalizeStats(statsInput)
   const powerConfig = BATTLE_CONFIG.power
-  const opponent = getScaledReferenceOpponent(statsInput)
+  const opponent = getFixedReferenceOpponent(options)
   const opponentAttack = Math.max(Number.EPSILON, opponent.attack)
   const opponentArmor = opponent.armor
   const incomingDamageAfterArmor = calculateArmorReducedDamage(opponentAttack, stats.armor)
@@ -109,6 +144,7 @@ function toReferenceStatScale(stats: CombatantStats): Pick<CombatantStats, 'atta
   }
 }
 
+/** Отношения герой / playerBase — только для диагностик (Arm/Ref Arm и т.п.). */
 export function getReferenceStatScales(statsInput: CombatantStats): ReferenceStatScales {
   const stats = toReferenceStatScale(statsInput)
   const base = GEAR_CONFIG.playerBase
@@ -120,34 +156,13 @@ export function getReferenceStatScales(statsInput: CombatantStats): ReferenceSta
   }
 }
 
-/** Общий scale: взвешенное геометрическое среднее отношений герой / playerBase. */
-export function getReferenceOpponentScale(statsInput: CombatantStats): number {
-  const scales = getReferenceStatScales(statsInput)
-  const powerConfig = BATTLE_CONFIG.power
-
-  return (
-    Math.pow(scales.attack, powerConfig.opponentScaleAttackWeight) *
-    Math.pow(scales.health, powerConfig.opponentScaleHealthWeight) *
-    Math.pow(scales.armor, powerConfig.opponentScaleArmorWeight)
-  )
+export function calculateCombatantPower(
+  combatant: Combatant,
+  options?: PowerCalculationOptions,
+): number {
+  return calculatePower(combatant.stats, options).power
 }
 
-/** Эталонный противник: playerBase × S (единый scale по геом. среднему). */
-export function getScaledReferenceOpponent(statsInput: CombatantStats): ScaledReferenceOpponent {
-  const base = GEAR_CONFIG.playerBase
-  const scale = getReferenceOpponentScale(statsInput)
-
-  return {
-    attack: base.attack * scale,
-    health: base.health * scale,
-    armor: base.defence * scale,
-  }
-}
-
-export function calculateCombatantPower(combatant: Combatant): number {
-  return calculatePower(combatant.stats).power
-}
-
-export function calculateTeamPower(team: Team): number {
-  return team.members.reduce((total, member) => total + calculateCombatantPower(member), 0)
+export function calculateTeamPower(team: Team, options?: PowerCalculationOptions): number {
+  return team.members.reduce((total, member) => total + calculateCombatantPower(member, options), 0)
 }
