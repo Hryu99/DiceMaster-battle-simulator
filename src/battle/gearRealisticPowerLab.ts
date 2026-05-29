@@ -1,5 +1,4 @@
-import { BATTLE_CONFIG } from './config'
-import { calculatePower, type PowerCalculationOptions } from './power'
+import { calculatePower } from './power'
 import {
   createPowerLabDiagnostics,
   runOneVsOneMatrix,
@@ -103,21 +102,18 @@ export function runGearRealisticPowerLab(
 
 export function generateGearBuilds(config: GearRealisticPowerLabConfig): GearRealisticBuild[] {
   const rng = new SeededRandom(config.seed)
-  const referenceTierPower = config.targetPower ?? BATTLE_CONFIG.power.referenceTierBasePower
-  const powerOptions: PowerCalculationOptions = { referenceTierPower }
-
   return Array.from({ length: config.candidateCount }, (_, index) => {
     const loadout = generateGearLoadout(rng, {
       fixedRarityId: config.fixedRarityId ?? undefined,
     })
     const stats = buildCombatantStatsFromGear(loadout)
-    const breakdown = calculatePower(stats, powerOptions)
+    const breakdown = calculatePower(stats)
 
     return {
       combatant: createGearCombatant(`gear-build-${index + 1}`, stats),
       power: breakdown.power,
       tags: tagBuild(stats),
-      diagnostics: createPowerLabDiagnostics(stats, breakdown, referenceTierPower),
+      diagnostics: createPowerLabDiagnostics(stats, breakdown),
       loadout,
       gearTags: tagGearLoadout(loadout),
     }

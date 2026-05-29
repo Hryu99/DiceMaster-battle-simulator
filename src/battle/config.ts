@@ -1,27 +1,25 @@
 /**
  * Боевой и power-конфиг симулятора.
  *
- * Baseline формулы силы (Stress Lab @150, прогон 3 — принят):
- * см. docs/power-formula-balance-plan.md → «Зафиксированный конфиг».
- * Не менять без нового прогона Stress и записи в журнал того же документа.
+ * Видимая сила: модель B — docs/power-display-formula-options.md
+ * Баланс весов: Stress Lab + журнал в docs/power-formula-balance-plan.md
  */
 export const BATTLE_CONFIG = {
-  armorDamageConstant: 1, // константа K в формуле снижения урона бронёй
-  minDamageMultiplier: 0.05, // минимальная доля входящего урона после брони
+  armorDamageConstant: 1, // константа K в формуле снижения урона бронёй (только бой)
+  minDamageMultiplier: 0.05, // минимальная доля входящего урона после брони (только бой)
   power: {
-    averageExtraTargets: 1.5, // среднее число доп. целей для массовой атаки в силе
-  /** Базовый тир силы: при referenceTierPower = это значение эталон = playerBase (scale 1). */
-    referenceTierBasePower: 150,
-    minHitImpactMultiplier: 0.75, // нижняя граница множителя удара
-    hitImpactEfficiency: 0.5, // чувствительность hit impact к размеру удара
-    maxHitImpactMultiplier: 1.6, // верхняя граница множителя удара
-    critEfficiency: 0.46, // доля крит-урона, учитываемая в expected hit
-    attackSpeedEfficiency: 0.63, // эффективность скорости атаки выше 100%
-    areaEfficiency: 1, // эффективность урона по области в effective DPS
-    lifestealEfficiency: 0.35, // доля main DPS × lifesteal, идущая в sustain
-    thornsEfficiency: 0.83, // множитель ценности шипов в pressure
-    sustainEffectiveHealthDivisor: 20, // EHP в знаменателе sustain: слабее, чем DPS
-    defensePowerWeight: 0.50, // степень EHP в итоговой силе
-    offensePowerWeight: 0.50, // степень pressure в итоговой силе
+    /** Модель B: mit = armor / (armor + armorRatingConstant) */
+    armorRatingConstant: 50,
+    /** Фикс. броня цели для расчёта урона/шипов в силе (не от билда, не от локации) */
+    referenceArmorForOffense: 35,
+    averageExtraTargets: 1.5,
+    critEfficiency: 0.55,
+    attackSpeedEfficiency: 0.7,
+    areaEfficiency: 1,
+    lifestealEfficiency: 0.35,
+    thornsEfficiency: 0.83,
+    sustainEffectiveHealthDivisor: 20,
+    defensePowerWeight: 0.5,
+    offensePowerWeight: 0.5,
   },
 }

@@ -276,201 +276,50 @@ Lifesteal считается только от фактического урон
 
 Seed позволяет получать повторяемые результаты для одной и той же настройки.
 
-## Расчет силы
+## Расчет силы (видимая игроку, модель B)
 
-Сила персонажа нужна как быстрый численный рейтинг, который должен примерно отражать реальную боевую эффективность.
+Подробно: [power-display-formula-options.md](./power-display-formula-options.md).
 
-Сила не является источником истины. Главная проверка баланса - фактические результаты серии симуляций.
+**Видимая сила** зависит **только от статов героя** и констант в `config.ts`. Локация, тир, зеркальный враг от билда **не** меняют цифру. Бой использует отдельную формулу брони (`damageAfterArmor`).
 
-Текущая формула силы состоит из нескольких частей.
+Подбор оппонентов и Stress Lab могут использовать другие метрики; цель видимой силы — стабильный рейтинг и монотонность: рост стата → рост силы.
 
-### Эффективное здоровье
-
-Выживаемость считается через тот же расчет брони, что и в бою, а не через линейную прибавку.
-
-Для оценки брони используется **фиксированный эталонный противник** (`gearConfig.playerBase`), масштабированный только по **тиру силы**, а не по статам героя.
+### Мягкая броня (только сила)
 
 ```text
-tierScale = referenceTierPower / referenceTierBasePower   // по умолчанию 150 / 150 = 1
-oppAttack = playerBase.attack * tierScale
-oppHealth = playerBase.health * tierScale
-oppArmor  = playerBase.defence * tierScale
+mitigation(armor) = armor / (armor + armorRatingConstant)
+effectiveDamage(attack, targetArmor) = attack * (1 - mitigation(targetArmor))
 ```
 
-- В UI и Excel по умолчанию `referenceTierPower = 150` → эталон `25 / 100 / 10`.
-- В Power Lab / Gear Lab эталон берётся из `targetPower` прогона (150, 500, 1000 и т.д.).
+Константы: `armorRatingConstant` (K), `referenceArmorForOffense` (фикс. броня цели для урона и шипов).
 
-Отношения герой / `playerBase` (`attackScale`, `healthScale`, `armorScale`) остаются **только для диагностик** (Arm/Ref Arm в отчётах), на эталонного врага не влияют.
-
-Так любой рост стата героя даёт рост расчётной силы (монотонность по primaries и secondary в своих каналах).
-
-Далее для формулы силы:
+### Компоненты
 
 ```text
-referenceIncomingHit = oppAttack
-referenceEnemyArmor = oppArmor
+defenseScore = health * (1 + armor / K)
+offenseHit   = effectiveDamage(attack, referenceArmor)
+expectedHit  = offenseHit * (1 + critChance * (critDamage - 1) * critEfficiency)
+mainDps      = expectedHit * effectiveAttackSpeed
+areaDps      = effectiveDamage(attack * areaAttack, referenceArmor) * averageExtraTargets * areaEfficiency * effectiveAttackSpeed
+thornsValue  = effectiveDamage(armor * thorns, referenceArmor) * refAttackSpeed * thornsEfficiency
+
+sustainMult  = 1 + (mainDps * lifesteal * lsEff) / (mainDps + areaDps + defenseScore / sustainEhpDiv)
+
+displayPower = defenseScore^defenseWeight * (mainDps + areaDps + thornsValue)^offenseWeight * sustainMult
 ```
 
-Параметры: `referenceTierBasePower` в `config.ts`, базовые статы эталона — в `gearConfig.playerBase`.
+Hit impact **не** используется. В UI поле breakdown `effectiveHealth` = `defenseScore`.
 
-Затем формула смотрит, сколько урона такой удар нанесет после брони персонажа:
+### Бой vs сила
 
-```text
-incomingDamageAfterArmor = damageAfterArmor(referenceIncomingHit, armor)
-effectiveHealth = health * referenceIncomingHit / incomingDamageAfterArmor
-```
+| | Бой | Сила (модель B) |
+| --- | --- | --- |
+| Броня | `R*C/(C+R/A)`, мин. 5% урона | `attack * (1 - A/(A+K))` |
+| Эталонный враг | реальный противник | только `referenceArmor` |
 
-Если броня режет расчетный входящий удар вдвое, эффективное здоровье примерно удваивается.
+Точность предсказания win rate может быть ниже; веса подстраиваются в Power Lab.
 
-### Ожидаемый урон обычной атаки
-
-Обычная атака считается в том же порядке, что и симуляция: сначала броня цели, потом средний эффект критов.
-
-Для расчета силы используется условная средняя броня врага — базовая броня героя из `gearConfig.playerBase.defence` (сейчас `10`):
-
-```text
-referenceEnemyArmorBase = playerBase.defence
-```
-
-Эталонная броня врага для урона билда — от фиксированного эталона (см. выше):
-
-```text
-referenceEnemyArmor = playerBase.defence * tierScale
-baseHitAfterArmor = damageAfterArmor(attack, referenceEnemyArmor)
-expectedHitDamage = baseHitAfterArmor * (1 + critChance * (critDamage - 1) * 0.85)
-```
-
-Здесь `critChance` и `critDamage` уже переведены из процентов во внутренние коэффициенты.
-
-Коэффициент `0.85` - это `critEfficiency`. Он снижает расчетную ценность критов в формуле силы, потому что Power Lab показал: чистое математическое ожидание критического урона переоценивает критовые билды в 1v1.
-
-Пример: атака 100, средняя броня цели 20. Шанс крита 30%, урон крита 200%.
-
-```text
-baseHitAfterArmor = damageAfterArmor(100, 20) = 93.8
-expectedHitDamage = 93.8 * (1 + 0.3 * (2 - 1) * 0.85) = 117.7
-```
-
-### Основной DPS
-
-Ожидаемый урон обычной атаки умножается на эффективную скорость атаки.
-
-В бою скорость атаки работает напрямую, но в формуле силы высокие значения скорости немного дисконтируются через `attackSpeedEfficiency`, потому что Power Lab показал переоценку speed-билдов.
-
-```text
-effectiveAttackSpeed = 1 + (attackSpeed - 1) * 0.85
-mainDps = expectedHitDamage * effectiveAttackSpeed
-```
-
-Скорость атаки 100% равна `1.0`, 200% равна `2.0`.
-
-### Размер обычного удара в силе
-
-В симуляции два персонажа с одинаковым DPS, но разным размером удара, могут вести себя по-разному.
-
-Крупный удар обычно ценнее мелкого, потому что:
-
-- лучше пробивает нелинейную броню;
-- быстрее добивает цель;
-- может сократить число ответных атак противника;
-- сильнее давит на sustain-билды.
-
-Поэтому основной DPS дополнительно умножается на `hitImpactMultiplier`.
-
-Сначала считается отношение ожидаемого обычного удара к расчетному входящему удару:
-
-```text
-hitImpactRatio = expectedHitDamage / referenceIncomingHit
-```
-
-Затем считается множитель:
-
-```text
-hitImpactMultiplier = 1 + (hitImpactRatio - 1) * 0.45
-```
-
-Множитель ограничен диапазоном:
-
-```text
-0.85 <= hitImpactMultiplier <= 1.6
-```
-
-Если обычный удар крупнее ожидаемого масштаба, основной DPS получает бонус. Если удар мелкий, основной DPS получает штраф.
-
-```text
-weightedMainDps = mainDps * hitImpactMultiplier
-```
-
-### Массовая атака в силе
-
-Массовая атака считается отдельным источником урона, как и в симуляции. Она не критует и не дает lifesteal.
-
-При расчете силы формула не смотрит на фактическое количество противников в конкретном бою. Вместо этого считается, что врагов может быть от 1 до 4, и каждый вариант равновероятен.
-
-Среднее количество дополнительных целей сверх основной:
-
-```text
-(0 + 1 + 2 + 3) / 4 = 1.5
-```
-
-Массовая атака также проходит через среднюю броню условного врага. Используется коэффициент эффективности 0.55, чтобы массовая атака не переоценивалась в формуле силы.
-
-```text
-areaHitAfterArmor = damageAfterArmor(attack * areaAttack, referenceEnemyArmor)
-areaDps = areaHitAfterArmor * averageExtraTargets * 0.55 * attackSpeed
-effectiveDps = weightedMainDps + areaDps
-```
-
-### Lifesteal в силе
-
-Lifesteal добавляет ценность через sustain, но считается только от обычной атаки.
-
-```text
-sustain = mainDps * lifesteal * 0.5
-```
-
-Затем sustain повышает итоговую силу через множитель. Массовая атака в sustain не входит, потому что в бою она не лечит.
-
-### Шипы в силе
-
-Шипы оцениваются как ожидаемый ответный урон от входящих обычных атак.
-
-```text
-thornsRawDamage = armor * thorns
-thornsAfterArmor = damageAfterArmor(thornsRawDamage, referenceEnemyArmor)
-thornsValue = thornsAfterArmor * (playerBase.speed / 100) * 1.3
-```
-
-В этой оценке шипы считаются процентом от брони владельца, затем уменьшаются средней броней условного атакующего. Они не срабатывают от массовых атак.
-
-### Итоговая сила
-
-Итоговая сила объединяет выживаемость и давление через взвешенную геометрию.
-
-Давление получает больший вес, потому что Power Lab показал: билды с большим EHP, но низким DPS часто проигрывают, даже если старая формула считала их равными.
-
-Текущие веса:
-
-```text
-defensePowerWeight = 0.4
-offensePowerWeight = 0.6
-```
-
-Сначала считается давление:
-
-```text
-pressure = effectiveDps + thornsValue
-```
-
-Затем итоговая сила:
-
-```text
-power = effectiveHealth^0.4 * pressure^0.6 * sustainMultiplier
-```
-
-Абсолютное значение силы после этой формулы не обязано совпадать со старым масштабом. Важнее, чтобы персонажи с близкой силой давали близкий win rate в Power Lab.
-
-Командная сила считается как сумма сил всех персонажей команды.
+Командная сила — сумма `displayPower` участников.
 
 ## Power Lab
 

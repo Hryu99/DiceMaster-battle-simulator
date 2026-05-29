@@ -1,4 +1,4 @@
-import { calculatePower, getFixedReferenceOpponent, type PowerCalculationOptions } from './power'
+import { calculatePower, getPowerReferenceProfile } from './power'
 import { SeededRandom, type RandomSource } from './rng'
 import { runSimulations } from './simulator'
 import type { Combatant, CombatantStats, PowerBreakdown, Team } from './types'
@@ -142,14 +142,13 @@ export function generateRandomBuilds(config: PowerLabConfig): PowerLabBuild[] {
   return Array.from({ length: config.candidateCount }, (_, index) => {
     const stats = generateStats(config.statRanges, rng)
     const combatant = createLabCombatant(`build-${index + 1}`, stats)
-    const powerOptions: PowerCalculationOptions = { referenceTierPower: config.targetPower }
-    const breakdown = calculatePower(stats, powerOptions)
+    const breakdown = calculatePower(stats)
 
     return {
       combatant,
       power: breakdown.power,
       tags: tagBuild(stats, tagScale),
-      diagnostics: createPowerLabDiagnostics(stats, breakdown, config.targetPower),
+      diagnostics: createPowerLabDiagnostics(stats, breakdown),
     }
   })
 }
@@ -276,9 +275,8 @@ export function summarizeOverall(builds: PowerLabBuildResult[]): PowerLabOverall
 export function createPowerLabDiagnostics(
   stats: CombatantStats,
   breakdown: PowerBreakdown,
-  referenceTierPower?: number,
 ): PowerLabDiagnostics {
-  const opponent = getFixedReferenceOpponent({ referenceTierPower })
+  const reference = getPowerReferenceProfile()
 
   return {
     attack: stats.attack,
@@ -290,9 +288,9 @@ export function createPowerLabDiagnostics(
     effectiveHealth: breakdown.effectiveHealth,
     sustain: breakdown.sustain,
     hitImpactMultiplier: breakdown.hitImpactMultiplier,
-    hitToReferenceRatio: breakdown.expectedHitDamage / Math.max(opponent.attack, Number.EPSILON),
-    opponentAttack: opponent.attack,
-    opponentArmor: opponent.armor,
+    hitToReferenceRatio: breakdown.expectedHitDamage / Math.max(reference.attack, Number.EPSILON),
+    opponentAttack: reference.attack,
+    opponentArmor: reference.armor,
     effectiveHealthToDpsRatio: breakdown.effectiveHealth / Math.max(breakdown.dps, Number.EPSILON),
     dpsToEffectiveHealthRatio: breakdown.dps / Math.max(breakdown.effectiveHealth, Number.EPSILON),
     thornsValue: breakdown.thornsValue,

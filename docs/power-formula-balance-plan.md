@@ -79,7 +79,7 @@
 | Sustain | `lifestealEfficiency`, `sustainEffectiveHealthDivisor` |
 | Ответный урон | `thornsEfficiency` |
 | Area (только в формуле) | `areaEfficiency`, `averageExtraTargets` |
-| Эталонный противник | `referenceTierBasePower`; в лабе — `targetPower` как `referenceTierPower` |
+| Модель силы B | `armorRatingConstant`, `referenceArmorForOffense` — см. [power-display-formula-options.md](./power-display-formula-options.md) |
 
 Правило итерации: **1–2 параметра за проход** → тот же `seed` → сравнить tag summaries.
 
@@ -186,7 +186,7 @@
 
 При старте плана уже сделано:
 
-- Эталонный противник **фиксирован по тиру**: `tierScale = referenceTierPower / referenceTierBasePower`, `opp* = playerBase × tierScale` (не от статов героя). Нужен **новый прогон Stress Lab** после смены модели.
+- **Модель B (принята):** видимая сила только от статов; мягкая броня в `calculatePower`. Нужен **новый прогон Stress Lab** для подстройки K, `referenceArmor`, весов.
 - Параметры вынесены в `config.ts` (в т.ч. `sustainEffectiveHealthDivisor`)
 - Excel-калькулятор с подсказками в колонке C
 
