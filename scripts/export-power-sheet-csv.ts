@@ -98,6 +98,7 @@ const ROW_KEYS = new Set([
   'cfgPlayerBaseSpd',
   'cfgAvgExtraTargets',
   'cfgPowerArmorK',
+  'cfgHealthDefExp',
   'cfgRefArmor',
   'cfgCritEff',
   'cfgAtkSpdEff',
@@ -218,6 +219,12 @@ function buildRows(): CsvRow[] {
     'cfgPowerArmorK',
   )
   addRow(
+    'healthDefenseExponent',
+    n(p.healthDefenseExponent),
+    'степень HP в defenseScore (1 = линейно)',
+    'cfgHealthDefExp',
+  )
+  addRow(
     'referenceArmorForOffense',
     n(p.referenceArmorForOffense),
     'фикс. броня цели для урона в силе',
@@ -282,8 +289,8 @@ function buildRows(): CsvRow[] {
   )
   addRow(
     'defenseScore',
-    `=${b(R.normHp)}*(1+${b(R.normArm)}/${$(R.cfgPowerArmorK)})`,
-    'выживаемость: HP × (1 + armor/K)',
+    `=POWER(${b(R.normHp)};${$(R.cfgHealthDefExp)})*(1+${b(R.normArm)}/${$(R.cfgPowerArmorK)})`,
+    'выживаемость: HP^exp × (1 + armor/K)',
     '',
     'defenseScore',
   )

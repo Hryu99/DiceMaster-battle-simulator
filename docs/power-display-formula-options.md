@@ -40,7 +40,7 @@
 ```text
 mitigation(armor) = armor / (armor + K)
 
-defenseScore  = health × (1 + armor / K)
+defenseScore  = health^healthDefenseExponent × (1 + armor / K)   // exp ≤ 1 ослабляет чистый HP
 offenseHit    = attack × (1 − mitigation(referenceArmor))
 expectedHit   = offenseHit × (1 + critChance × (critDamage − 1) × critEfficiency)
 mainDps       = expectedHit × effectiveAttackSpeed

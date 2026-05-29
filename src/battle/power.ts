@@ -51,11 +51,13 @@ export function calculatePowerEffectiveDamage(attack: number, targetArmor: numbe
   return attack * (1 - calculatePowerArmorMitigation(targetArmor))
 }
 
-/** Пул выживаемости: HP × (1 + armor/K). Монотонен по health и armor. */
+/** Пул выживаемости: HP^exp × (1 + armor/K). Монотонен по health и armor. */
 export function calculatePowerDefenseScore(health: number, armor: number): number {
-  const rating = BATTLE_CONFIG.power.armorRatingConstant
+  const { armorRatingConstant, healthDefenseExponent } = BATTLE_CONFIG.power
 
-  return health * (1 + armor / rating)
+  return (
+    Math.pow(Math.max(1, health), healthDefenseExponent) * (1 + armor / armorRatingConstant)
+  )
 }
 
 export function getPowerReferenceProfile(): PowerReferenceProfile {

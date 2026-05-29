@@ -296,7 +296,7 @@ effectiveDamage(attack, targetArmor) = attack * (1 - mitigation(targetArmor))
 ### Компоненты
 
 ```text
-defenseScore = health * (1 + armor / K)
+defenseScore = health^healthDefenseExponent * (1 + armor / K)
 offenseHit   = effectiveDamage(attack, referenceArmor)
 expectedHit  = offenseHit * (1 + critChance * (critDamage - 1) * critEfficiency)
 mainDps      = expectedHit * effectiveAttackSpeed

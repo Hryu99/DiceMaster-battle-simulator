@@ -18,18 +18,19 @@ armorDamageConstant (бой);1;K в calculateArmorReducedDamage;
 minDamageMultiplier (бой);0,05;мин. доля урона после брони в бою;
 ;;;
 —— КОНФИГ СИЛЫ, модель B ——;;docs/power-display-formula-options.md;
-armorRatingConstant (K);50;mit = armor / (armor + K);
-referenceArmorForOffense;30;фикс. броня цели для урона в силе;
+armorRatingConstant (K);82;mit = armor / (armor + K);
+healthDefenseExponent;0,92;степень HP в defenseScore (1 = линейно);
+referenceArmorForOffense;29;фикс. броня цели для урона в силе;
 averageExtraTargets;1,5;среднее число доп. целей для массовой атаки в силе;
-critEfficiency;0,46;доля крит-урона, учитываемая в expected hit;
-attackSpeedEfficiency;0,63;эффективность скорости атаки выше 100%;
+critEfficiency;0,59;доля крит-урона, учитываемая в expected hit;
+attackSpeedEfficiency;0,72;эффективность скорости атаки выше 100%;
 areaEfficiency;1;эффективность урона по области в effective DPS;
-lifestealEfficiency;0,35;доля main DPS × lifesteal, идущая в sustain;
-thornsEfficiency;0,83;множитель ценности шипов;
+lifestealEfficiency;0,38;доля main DPS × lifesteal, идущая в sustain;
+thornsEfficiency;0,66;множитель ценности шипов;
 playerBaseSpeed (шипы);1;множитель скорости для thorns в силе;
 sustainEffectiveHealthDivisor;20;defenseScore в знаменателе sustain;
-defensePowerWeight;0,5;степень defenseScore в силе;
-offensePowerWeight;0,5;степень offense в силе;
+defensePowerWeight;0,4;степень defenseScore в силе;
+offensePowerWeight;0,6;степень offense в силе;
 ;;;
 —— НОРМАЛИЗАЦИЯ (как normalizeStats) ——;;;
 atk;"=MAX(0;B6)";;
@@ -43,19 +44,19 @@ area;"=MIN(1;MAX(0;B13/100))";;
 th;"=MAX(0;B14/100)";;
 ;;;
 —— РАСЧЁТ (модель B) ——;;колонка D — сверка с Node;
-mitigation(referenceArmor);=($B$22)/(($B$22)+$B$21);доля поглощения фикс. брони цели;0,375
-defenseScore;=B36*(1+B37/$B$21);выживаемость: HP × (1 + armor/K);320
-mainHit (power armor);"=IF((B35)<=0;0;(B35)*(1-$B$22/($B$22+$B$21)))";атака × (1 − mit(refArmor));37,5
-expectedHitDamage;=B48*(1+B39*(B40-1)*$B$24);средний удар с критом (expected);
-effectiveAttackSpeed;"=MAX(1E-9;1+(B38-1)*$B$25)";скорость атаки >100% с коэфф.;
-dps (main);=B49*B50;main DPS;37,5
-areaHit (power armor);"=IF((B35*B42)<=0;0;(B35*B42)*(1-$B$22/($B$22+$B$21)))";area через mit(refArmor);
-areaDps;=B52*$B$23*$B$26*B50;вклад area в давление;
-offensePressure;=B51+B53;main + area DPS;
-sustain (только от main dps);=B51*B41*$B$27;хил только от обычной атаки;
-sustainMultiplier;"=1+B55/MAX(1;B54+B47/$B$30)";множитель силы от lifesteal;
-thornsRaw;=B37*B43;сырой урон шипов;
-thornsHit (power armor);"=IF((B57)<=0;0;(B57)*(1-$B$22/($B$22+$B$21)))";шипы vs refArmor;
-thornsValue;=B58*$B$29*$B$28;шипы в pressure;
-offenseScore;=B54+B59;DPS + area + thorns;
-СИЛА (power);"=POWER(B47;$B$31)*POWER(B60;$B$32)*B56";defense^wDef × offense^wOff × sustain;109,5445
+mitigation(referenceArmor);=($B$23)/(($B$23)+$B$21);доля поглощения фикс. брони цели;0,2613
+defenseScore;"=POWER(B37;$B$22)*(1+B38/$B$21)";выживаемость: HP^exp × (1 + armor/K);178,7935
+mainHit (power armor);"=IF((B36)<=0;0;(B36)*(1-$B$23/($B$23+$B$21)))";атака × (1 − mit(refArmor));44,3243
+expectedHitDamage;=B49*(1+B40*(B41-1)*$B$25);средний удар с критом (expected);
+effectiveAttackSpeed;"=MAX(1E-9;1+(B39-1)*$B$26)";скорость атаки >100% с коэфф.;
+dps (main);=B50*B51;main DPS;44,3243
+areaHit (power armor);"=IF((B36*B43)<=0;0;(B36*B43)*(1-$B$23/($B$23+$B$21)))";area через mit(refArmor);
+areaDps;=B53*$B$24*$B$27*B51;вклад area в давление;
+offensePressure;=B52+B54;main + area DPS;
+sustain (только от main dps);=B52*B42*$B$28;хил только от обычной атаки;
+sustainMultiplier;"=1+B56/MAX(1;B55+B48/$B$31)";множитель силы от lifesteal;
+thornsRaw;=B38*B44;сырой урон шипов;
+thornsHit (power armor);"=IF((B58)<=0;0;(B58)*(1-$B$23/($B$23+$B$21)))";шипы vs refArmor;
+thornsValue;=B59*$B$30*$B$29;шипы в pressure;
+offenseScore;=B55+B60;DPS + area + thorns;
+СИЛА (power);"=POWER(B48;$B$32)*POWER(B61;$B$33)*B57";defense^wDef × offense^wOff × sustain;77,433

@@ -9,17 +9,19 @@ export const BATTLE_CONFIG = {
   minDamageMultiplier: 0.05, // минимальная доля входящего урона после брони (только бой)
   power: {
     /** Модель B: mit = armor / (armor + armorRatingConstant) */
-    armorRatingConstant: 50,
+    armorRatingConstant: 82, // B-stress-2: tank-health 41% — ещё ↓ броня в defenseScore
+    /** Степень HP в defenseScore (<1 ослабляет чистые HP-танки). */
+    healthDefenseExponent: 0.92,
     /** Фикс. броня цели для расчёта урона/шипов в силе (не от билда, не от локации) */
-    referenceArmorForOffense: 35,
+    referenceArmorForOffense: 29, // B-stress-2: attack-heavy 58% — ↑ offense
     averageExtraTargets: 1.5,
-    critEfficiency: 0.55,
-    attackSpeedEfficiency: 0.7,
+    critEfficiency: 0.59,
+    attackSpeedEfficiency: 0.72, // B-stress-2: speed-heavy 45% — слегка ↓ (переоценка)
     areaEfficiency: 1,
-    lifestealEfficiency: 0.35,
-    thornsEfficiency: 0.83,
+    lifestealEfficiency: 0.38,
+    thornsEfficiency: 0.66, // B-stress-2: thorns 59% после среза 0.58 — поднять
     sustainEffectiveHealthDivisor: 20,
-    defensePowerWeight: 0.5,
-    offensePowerWeight: 0.5,
+    defensePowerWeight: 0.4,
+    offensePowerWeight: 0.6,
   },
 }

@@ -272,7 +272,73 @@ Baseline: Arm/Ref Arm **1,69**, EHP/DPS **10,25**.
 
 ---
 
-## Зафиксированный конфиг (прогон 3)
+## Модель B (display power) — журнал Stress @150
+
+Формула: [power-display-formula-options.md](./power-display-formula-options.md). Подбор билдов ±5% от 150; **тот же seed**, что в предыдущих прогонах.
+
+### Прогон B-0 — первый Stress после внедрения модели B
+
+Стартовый конфиг: `K=50`, `referenceArmor=30–35`, `def/off 0,5/0,5`, `thornsEff 0,83`, `crit 0,55`, `atkSpd 0,7`.
+
+| Тег | Win rate | N | Интерпретация |
+| --- | ---: | ---: | --- |
+| attack-heavy | **69,6%** | 13 | сила **занижает** уронные билды |
+| speed-heavy | **63,8%** | 15 | то же |
+| sustain | 58,7% | 20 | слегка занижен |
+| crit-heavy | 54,4% | 17 | около цели |
+| thorns | **39,8%** | 10 | сила **завышает** шипы |
+| tank-armor | **34,7%** | 10 | завышен defenseScore / броня |
+| tank-health | **24,4%** | 15 | завышен HP в defenseScore |
+
+Baseline: Avg power **150**; Arm/Ref **1,17**; A/Ref Arm **1,48**; Hit/Ref **1,43**; Hit x **1** (hit impact отключён); EHP **455**; DPS **48,8**; EHP/DPS **13,55**.
+
+**Вывод:** при равной **видимой** силе бой сильнее награждает offense, чем формула B. Нужно: ↓ вес защиты и thorns, ↑ offense-коэффициенты, ↑ `K` (меньше `1+armor/K`).
+
+### Прогон B-1 — правка конфига (ожидается повтор Stress)
+
+| Параметр | B-0 | B-1 |
+| --- | ---: | ---: |
+| `armorRatingConstant` | 50 | **70** |
+| `referenceArmorForOffense` | 35 | **32** |
+| `defensePowerWeight` | 0,50 | **0,42** |
+| `offensePowerWeight` | 0,50 | **0,58** |
+| `thornsEfficiency` | 0,83 | **0,58** |
+| `critEfficiency` | 0,55 | **0,58** |
+| `attackSpeedEfficiency` | 0,70 | **0,76** |
+| `lifestealEfficiency` | 0,35 | **0,38** |
+
+Цель по тегам: размах win rate **~45–55%** (как прогон 3 на старой формуле).
+
+### Прогон B-1 — результат Stress (подтверждён)
+
+| Тег | Win rate | N |
+| --- | ---: | ---: |
+| thorns | 59,5% | 16 |
+| attack-heavy | 58,5% | 19 |
+| tank-armor | 55,7% | 19 |
+| sustain | 51,7% | 16 |
+| crit-heavy | **49,7%** | 21 |
+| speed-heavy | 44,8% | 20 |
+| tank-health | **41,0%** | 15 |
+
+Размах **18,5 п.п.** (было ~45). Thorns перекорректированы вниз (`thornsEff 0,58`); tank-health и speed-heavy ещё вне коридора.
+
+### Прогон B-2 — правка конфига + `healthDefenseExponent`
+
+| Параметр | B-1 | B-2 |
+| --- | ---: | ---: |
+| `armorRatingConstant` | 70 | **82** |
+| `healthDefenseExponent` | 1 | **0,92** |
+| `referenceArmorForOffense` | 32 | **29** |
+| `defensePowerWeight` | 0,42 | **0,40** |
+| `offensePowerWeight` | 0,58 | **0,60** |
+| `thornsEfficiency` | 0,58 | **0,66** |
+| `attackSpeedEfficiency` | 0,76 | **0,72** |
+| `critEfficiency` | 0,58 | **0,59** |
+
+---
+
+## Зафиксированный конфиг (прогон 3, устарел — до модели B)
 
 Источник истины в коде: `src/battle/config.ts`. При расхождении с таблицей верить файлу.
 
