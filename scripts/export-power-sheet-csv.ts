@@ -23,16 +23,17 @@ const FIELD_SEP = ';'
 
 type CsvRow = [string, string, string, string]
 
+/** Стартовые статы листа и сверка в колонке D (меняй под себя). */
 const DEFAULT_SHEET_HERO_STATS: CombatantStats = {
   attack: 60,
   health: 200,
   armor: 30,
-  attackSpeed: 100,
-  critChance: 0,
-  critDamage: 150,
-  lifesteal: 0,
-  areaAttack: 0,
-  thorns: 0,
+  attackSpeed: 110,
+  critChance: 10,
+  critDamage: 160,
+  lifesteal: 10,
+  areaAttack: 10,
+  thorns: 10,
 }
 
 const R: Record<string, number> = {}
@@ -163,12 +164,12 @@ function buildRows(): CsvRow[] {
   addRow('Attack', String(DEFAULT_SHEET_HERO_STATS.attack), '', 'attack')
   addRow('Health', String(DEFAULT_SHEET_HERO_STATS.health), '', 'health')
   addRow('Armor', String(DEFAULT_SHEET_HERO_STATS.armor), '', 'armor')
-  addRow('Attack Speed, %', '100', '100 = базовая скорость', 'speed')
-  addRow('Crit Chance, %', '0', '', 'critChance')
-  addRow('Crit Damage, %', '150', '150 = ×1,5 урона на крите', 'critDamage')
-  addRow('Lifesteal, %', '0', '', 'lifesteal')
-  addRow('Mass Attack (area), %', '0', '', 'area')
-  addRow('Thorns, %', '0', '', 'thorns')
+  addRow('Attack Speed, %', String(DEFAULT_SHEET_HERO_STATS.attackSpeed), '100 = базовая скорость', 'speed')
+  addRow('Crit Chance, %', String(DEFAULT_SHEET_HERO_STATS.critChance), '', 'critChance')
+  addRow('Crit Damage, %', String(DEFAULT_SHEET_HERO_STATS.critDamage), '150 = ×1,5 урона на крите', 'critDamage')
+  addRow('Lifesteal, %', String(DEFAULT_SHEET_HERO_STATS.lifesteal), '', 'lifesteal')
+  addRow('Mass Attack (area), %', String(DEFAULT_SHEET_HERO_STATS.areaAttack), '', 'area')
+  addRow('Thorns, %', String(DEFAULT_SHEET_HERO_STATS.thorns), '', 'thorns')
   addRow('', '', '')
 
   addRow('—— БОЙ (только симулятор, не сила) ——', '', '')
