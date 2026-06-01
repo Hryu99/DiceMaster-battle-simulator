@@ -13,7 +13,6 @@ import { BATTLE_CONFIG } from '../src/battle/config.ts'
 import { GEAR_CONFIG } from '../src/battle/gear/gearConfig.ts'
 import {
   calculatePower,
-  calculatePowerDefenseArmorFactor,
   calculatePowerDefenseScore,
 } from '../src/battle/power.ts'
 import type { CombatantStats } from '../src/battle/types.ts'
@@ -86,7 +85,8 @@ const ROW_KEYS = new Set([
   'thorns',
   'cfgArmorK',
   'cfgMinDmg',
-  'cfgPowerArmorK',
+  'cfgRefHp',
+  'cfgRefArm',
   'cfgHealthDefExp',
   'cfgAvgExtraTargets',
   'cfgCritEff',
@@ -107,7 +107,6 @@ const ROW_KEYS = new Set([
   'normLs',
   'normArea',
   'normTh',
-  'defArmorFactor',
   'defenseScore',
   'mainHit',
   'expectedHit',
@@ -149,6 +148,8 @@ function buildRows(): CsvRow[] {
   rows = []
   sheetRow = 1
   const p = BATTLE_CONFIG.power
+  const hRef = GEAR_CONFIG.playerBase.health
+  const aRef = GEAR_CONFIG.playerBase.defence
 
   addRow('DiceMaster — калькулятор силы', '', '')
   addRow(
@@ -185,16 +186,12 @@ function buildRows(): CsvRow[] {
   )
   addRow('', '', '')
   addRow('—— КОНФИГ СИЛЫ, модель D1 (вакуум) ——', '', 'docs/power-display-formula-options.md')
+  addRow('playerBase HP (H₀)', String(hRef), 'эталон для defenseScore', 'cfgRefHp')
+  addRow('playerBase Armor (A₀)', String(aRef), 'эталон для defenseScore', 'cfgRefArm')
   addRow(
-    'armorRatingConstant (K)',
-    n(p.armorRatingConstant),
-    'defense: min(cap; 1+armor/K)',
-    'cfgPowerArmorK',
-  )
-  addRow(
-    'healthDefenseExponent',
+    'healthDefenseExponent (α)',
     n(p.healthDefenseExponent),
-    'степень HP в defenseScore',
+    'defense = (HP/H₀)^α × (armor/A₀)^(1−α)',
     'cfgHealthDefExp',
   )
   addRow(
@@ -243,16 +240,9 @@ function buildRows(): CsvRow[] {
 
   addRow('—— РАСЧЁТ (модель D1) ——', '', 'колонка D — сверка с Node')
   addRow(
-    'defenseArmorFactor',
-    `=1+${b(R.normArm)}/${$(R.cfgPowerArmorK)}`,
-    'вклад брони в defenseScore (1+armor/K)',
-    '',
-    'defArmorFactor',
-  )
-  addRow(
     'defenseScore',
-    `=POWER(${b(R.normHp)};${$(R.cfgHealthDefExp)})*${b(R.defArmorFactor)}`,
-    'HP^exp × defenseArmorFactor',
+    `=POWER(${b(R.normHp)}/${$(R.cfgRefHp)};${$(R.cfgHealthDefExp)})*POWER(MAX(${b(R.normArm)};${$(R.cfgRefArm)}*0,01)/${$(R.cfgRefArm)};1-${$(R.cfgHealthDefExp)})*POWER(${$(R.cfgRefHp)};${$(R.cfgHealthDefExp)})*POWER(${$(R.cfgRefArm)};1-${$(R.cfgHealthDefExp)})`,
+    '(HP/H₀)^α × (armor/A₀)^(1−α) × anchor',
     '',
     'defenseScore',
   )
@@ -323,9 +313,6 @@ function attachValidationChecks(): void {
   const breakdown = calculatePower(stats)
 
   for (const row of rows) {
-    if (row[0] === 'defenseArmorFactor') {
-      row[3] = n(Number(calculatePowerDefenseArmorFactor(stats.armor).toFixed(4)))
-    }
     if (row[0] === 'defenseScore') {
       row[3] = n(Number(breakdown.effectiveHealth.toFixed(4)))
     }

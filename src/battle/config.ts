@@ -8,17 +8,19 @@ export const BATTLE_CONFIG = {
   armorDamageConstant: 1, // K в calculateArmorReducedDamage (только бой)
   minDamageMultiplier: 0.05, // мин. доля урона после брони (только бой)
   power: {
-    /** K в defense: min(cap, 1 + armor/K). */
-    armorRatingConstant: 60,
-    healthDefenseExponent: 0.99,
+    /**
+     * Доля HP в defenseScore: (HP/H₀)^α × (armor/A₀)^(1−α).
+     * α+(1−α)=1 → при пропорциональном росте статов defense растёт линейно, как offense.
+     */
+    healthDefenseExponent: 0.54,
     averageExtraTargets: 1.5,
-    critEfficiency: 0.59,
+    critEfficiency: 0.8,
     attackSpeedEfficiency: 0.70,
     areaEfficiency: 1,
-    lifestealEfficiency: 0.38,
-    thornsEfficiency: 0.66,
+    lifestealEfficiency: 0.4,
+    thornsEfficiency: 0.75,
     sustainEffectiveHealthDivisor: 20,
-    defensePowerWeight: 0.5,
-    offensePowerWeight: 0.5,
+    defensePowerWeight: 0.48,
+    offensePowerWeight: 0.52,
   },
 }

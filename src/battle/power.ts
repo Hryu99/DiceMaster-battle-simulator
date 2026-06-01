@@ -32,18 +32,27 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
   }
 }
 
-/** Вклад брони в defenseScore: 1 + armor/K (без потолка, как линейный рост atk/hp). */
-export function calculatePowerDefenseArmorFactor(armor: number): number {
-  const { armorRatingConstant } = BATTLE_CONFIG.power
+function getDefenseReferenceStats(): { health: number; armor: number } {
+  const base = GEAR_CONFIG.playerBase
 
-  return 1 + Math.max(0, armor) / armorRatingConstant
+  return { health: base.health, armor: base.defence }
 }
 
-/** Выживаемость: HP^exp × defenseArmorFactor. */
+/**
+ * Defense относительно playerBase: (HP/H₀)^α × (armor/A₀)^(1−α).
+ * Степени в сумме = 1 → при HP, armor, atk ×t defense и offense ×t, сила ×t.
+ */
 export function calculatePowerDefenseScore(health: number, armor: number): number {
   const { healthDefenseExponent } = BATTLE_CONFIG.power
+  const { health: hRef, armor: aRef } = getDefenseReferenceStats()
+  const armorExponent = 1 - healthDefenseExponent
+  const armorForScore = Math.max(armor, aRef * 0.01)
 
-  return Math.pow(Math.max(1, health), healthDefenseExponent) * calculatePowerDefenseArmorFactor(armor)
+  const hFactor = Math.pow(Math.max(1, health) / hRef, healthDefenseExponent)
+  const aFactor = Math.pow(armorForScore / aRef, armorExponent)
+  const anchor = Math.pow(hRef, healthDefenseExponent) * Math.pow(aRef, armorExponent)
+
+  return anchor * hFactor * aFactor
 }
 
 export function getPowerReferenceProfile(): PowerReferenceProfile {

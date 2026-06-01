@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { BATTLE_CONFIG } from './config'
 import {
   calculatePower,
-  calculatePowerDefenseArmorFactor,
   calculatePowerDefenseScore,
   getPowerReferenceProfile,
   getReferenceIncomingAttackSpeedBase,
@@ -23,20 +22,45 @@ const baseStats: CombatantStats = {
   thorns: 0,
 }
 
-const armorK = BATTLE_CONFIG.power.armorRatingConstant
+const proportionalHero: CombatantStats = {
+  attack: 25,
+  health: 100,
+  armor: 10,
+  attackSpeed: 100,
+  critChance: 0,
+  critDamage: 150,
+  lifesteal: 0,
+  areaAttack: 0,
+  thorns: 0,
+}
 
 describe('power model D1', () => {
-  it('defense armor factor grows linearly with armor', () => {
-    expect(calculatePowerDefenseArmorFactor(0)).toBe(1)
-    expect(calculatePowerDefenseArmorFactor(armorK)).toBeCloseTo(2)
-    expect(calculatePowerDefenseArmorFactor(10_000)).toBeCloseTo(1 + 10_000 / armorK)
+  it('scales power linearly when all core stats scale together', () => {
+    const scale = 100
+    const small = calculatePower(proportionalHero)
+    const large = calculatePower({
+      ...proportionalHero,
+      attack: proportionalHero.attack * scale,
+      health: proportionalHero.health * scale,
+      armor: proportionalHero.armor * scale,
+    })
+
+    expect(large.dps / small.dps).toBeCloseTo(scale)
+    expect(large.effectiveHealth / small.effectiveHealth).toBeCloseTo(scale)
+    expect(large.power / small.power).toBeCloseTo(scale)
   })
 
-  it('main hit equals raw attack (no target mitigation)', () => {
-    expect(calculatePower({ ...baseStats, attack: 40 }).expectedHitDamage).toBeGreaterThan(
-      calculatePower({ ...baseStats, attack: 20 }).expectedHitDamage,
+  it('defense uses Cobb-Douglas vs playerBase (exponents sum to 1)', () => {
+    const { health: hRef, defence: aRef } = GEAR_CONFIG.playerBase
+    const alpha = BATTLE_CONFIG.power.healthDefenseExponent
+    const score = calculatePowerDefenseScore(200, 20)
+
+    expect(score).toBeCloseTo(
+      Math.pow(hRef, alpha) *
+        Math.pow(aRef, 1 - alpha) *
+        Math.pow(200 / hRef, alpha) *
+        Math.pow(20 / aRef, 1 - alpha),
     )
-    expect(calculatePower({ ...baseStats, attack: 50, critChance: 0 }).expectedHitDamage).toBe(50)
   })
 })
 

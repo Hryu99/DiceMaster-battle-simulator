@@ -44,8 +44,7 @@ Offense через `mitigation(referenceArmor)` и масштаб ref от бр�
 Offense **без** mit цели; defense только от своих HP/брони (бой не меняется):
 
 ```text
-defenseArmorFactor = 1 + armor / K
-defenseScore       = health^healthDefenseExponent × defenseArmorFactor
+defenseScore       = (health/H₀)^α × (armor/A₀)^(1−α)   // α+(1−α)=1 → линейный рост при ×t на все статы
 
 offenseHit         = attack
 expectedHit        = offenseHit × (1 + critChance × (critDamage − 1) × critEfficiency)
