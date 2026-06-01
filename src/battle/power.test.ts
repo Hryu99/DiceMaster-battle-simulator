@@ -175,7 +175,9 @@ describe('calculatePower', () => {
     expect(low.armorScale).toBe(1)
     expect(high.armorScale).toBe(10)
     expect(high.referenceArmor).toBeGreaterThan(low.referenceArmor)
-    expect(high.armorRating).toBeGreaterThan(low.armorRating)
+    expect(high.armorRating).toBe(low.armorRating)
+    expect(high.defenseArmorFactor).toBeGreaterThan(low.defenseArmorFactor)
+    expect(high.defenseArmorFactor).toBe(BATTLE_CONFIG.power.maxDefenseArmorFactor)
     expect(
       calculatePowerEffectiveDamage(300, high.referenceArmor, high.armorRating),
     ).toBeLessThan(calculatePowerEffectiveDamage(300, low.referenceArmor, low.armorRating))

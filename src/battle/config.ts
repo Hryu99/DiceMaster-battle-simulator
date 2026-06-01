@@ -11,15 +11,19 @@ export const BATTLE_CONFIG = {
     /** Модель B: mit = armor / (armor + armorRatingConstant) */
     armorRatingConstant: 60, // B-stress-2: tank-health 41% — ещё ↓ броня в defenseScore
     /** Степень HP в defenseScore (<1 ослабляет чистые HP-танки). */
-    healthDefenseExponent: 0.92,
+    healthDefenseExponent: 0.99,
     /**
      * База для armorScale = max(1, armor / baseline). Только стат героя, не tier локации.
      * ~средняя броня Stress @150; при 288 брони scale≈7 → refArmor и K растут вместе со статами.
      */
     armorScaleBaseline: 40,
-    /** K_eff = armorRatingConstant × armorScale^exponent */
+    /** refArmorEff = referenceArmorForOffense × armorScale^exp (offense/thorns). */
+    offenseReferenceScaleExponent: 1,
+    /** K_eff = armorRatingConstant × armorScale^exp (legacy offense mit; defense uses fixed K + cap). */
     armorContextScaleExponent: 0.65,
-    /** Фикс. броня цели при armor = armorScaleBaseline (масштабируется через getPowerArmorContext). */
+    /** Потолок (1 + armor/K) в defenseScore. */
+    maxDefenseArmorFactor: 2.35,
+    /** Фикс. броня цели при armor = armorScaleBaseline. */
     referenceArmorForOffense: 29,
     averageExtraTargets: 1.5,
     critEfficiency: 0.59,
@@ -28,7 +32,7 @@ export const BATTLE_CONFIG = {
     lifestealEfficiency: 0.38,
     thornsEfficiency: 0.66, // B-stress-2: thorns 59% после среза 0.58 — поднять
     sustainEffectiveHealthDivisor: 20,
-    defensePowerWeight: 0.4,
-    offensePowerWeight: 0.6,
+    defensePowerWeight: 0.5,
+    offensePowerWeight: 0.5,
   },
 }

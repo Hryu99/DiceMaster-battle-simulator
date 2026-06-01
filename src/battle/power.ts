@@ -13,6 +13,7 @@ export interface PowerArmorContext {
   armorScale: number
   armorRating: number
   referenceArmor: number
+  defenseArmorFactor: number
 }
 
 /** Фиксированный профиль для диагностик Power Lab (номинал при armor = armorScaleBaseline). */
@@ -40,17 +41,20 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
 }
 
 /**
- * Контекст брони для модели B: при высоких статах refArmor и K растут с armor героя,
- * чтобы сила не завышала танков на tier ~1000 при фиксированных константах @150.
+ * Контекст брони: defense — фикс. K + cap; offense ref масштабируется с armor героя.
  */
 export function getPowerArmorContext(heroArmor: number): PowerArmorContext {
   const powerConfig = BATTLE_CONFIG.power
   const armorScale = Math.max(1, heroArmor / powerConfig.armorScaleBaseline)
+  const armorFactorRaw = 1 + heroArmor / powerConfig.armorRatingConstant
 
   return {
     armorScale,
-    armorRating: powerConfig.armorRatingConstant * Math.pow(armorScale, powerConfig.armorContextScaleExponent),
-    referenceArmor: powerConfig.referenceArmorForOffense * armorScale,
+    armorRating: powerConfig.armorRatingConstant,
+    referenceArmor:
+      powerConfig.referenceArmorForOffense *
+      Math.pow(armorScale, powerConfig.offenseReferenceScaleExponent),
+    defenseArmorFactor: Math.min(powerConfig.maxDefenseArmorFactor, armorFactorRaw),
   }
 }
 
@@ -80,9 +84,9 @@ export function calculatePowerEffectiveDamage(
 /** Пул выживаемости: HP^exp × (1 + armor/K_eff). Монотонен по health и armor. */
 export function calculatePowerDefenseScore(health: number, armor: number): number {
   const { healthDefenseExponent } = BATTLE_CONFIG.power
-  const { armorRating } = getPowerArmorContext(armor)
+  const { defenseArmorFactor } = getPowerArmorContext(armor)
 
-  return Math.pow(Math.max(1, health), healthDefenseExponent) * (1 + armor / armorRating)
+  return Math.pow(Math.max(1, health), healthDefenseExponent) * defenseArmorFactor
 }
 
 export function getPowerReferenceProfile(heroArmor?: number): PowerReferenceProfile {

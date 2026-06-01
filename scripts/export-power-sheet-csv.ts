@@ -100,11 +100,13 @@ const ROW_KEYS = new Set([
   'cfgAvgExtraTargets',
   'cfgPowerArmorK',
   'cfgArmScaleBase',
-  'cfgArmCtxExp',
+  'cfgOffRefScaleExp',
+  'cfgMaxDefArmFactor',
   'cfgHealthDefExp',
   'cfgRefArmor',
   'armorScale',
   'armorRatingEff',
+  'defArmorFactor',
   'refArmorEff',
   'cfgCritEff',
   'cfgAtkSpdEff',
@@ -234,15 +236,21 @@ function buildRows(): CsvRow[] {
     'cfgArmScaleBase',
   )
   addRow(
-    'armorContextScaleExponent',
-    n(p.armorContextScaleExponent),
-    'K_eff = K × armorScale^exp',
-    'cfgArmCtxExp',
+    'offenseReferenceScaleExponent',
+    n(p.offenseReferenceScaleExponent),
+    'refArmorEff = ref × armorScale^exp',
+    'cfgOffRefScaleExp',
+  )
+  addRow(
+    'maxDefenseArmorFactor',
+    n(p.maxDefenseArmorFactor),
+    'потолок (1+armor/K) в defenseScore',
+    'cfgMaxDefArmFactor',
   )
   addRow(
     'referenceArmorForOffense (при scale=1)',
     n(p.referenceArmorForOffense),
-    'refArmorEff = это × armorScale',
+    'refArmorEff = это × armorScale^exp',
     'cfgRefArmor',
   )
   addRow(
@@ -302,16 +310,17 @@ function buildRows(): CsvRow[] {
     '',
     'armorScale',
   )
+  addRow('armorRating (K, фикс.)', `=${$(R.cfgPowerArmorK)}`, 'K для mit offense', '', 'armorRatingEff')
   addRow(
-    'armorRatingEff (K_eff)',
-    `=${$(R.cfgPowerArmorK)}*POWER(${b(R.armorScale)};${$(R.cfgArmCtxExp)})`,
-    'K для mit и defense',
+    'defenseArmorFactor',
+    `=MIN(${$(R.cfgMaxDefArmFactor)};1+${b(R.normArm)}/${$(R.cfgPowerArmorK)})`,
+    'вклад брони в defenseScore',
     '',
-    'armorRatingEff',
+    'defArmorFactor',
   )
   addRow(
     'refArmorEff',
-    `=${$(R.cfgRefArmor)}*${b(R.armorScale)}`,
+    `=${$(R.cfgRefArmor)}*POWER(${b(R.armorScale)};${$(R.cfgOffRefScaleExp)})`,
     'броня цели в offense/thorns',
     '',
     'refArmorEff',
@@ -325,8 +334,8 @@ function buildRows(): CsvRow[] {
   )
   addRow(
     'defenseScore',
-    `=POWER(${b(R.normHp)};${$(R.cfgHealthDefExp)})*(1+${b(R.normArm)}/${b(R.armorRatingEff)})`,
-    'выживаемость: HP^exp × (1 + armor/K_eff)',
+    `=POWER(${b(R.normHp)};${$(R.cfgHealthDefExp)})*${b(R.defArmorFactor)}`,
+    'выживаемость: HP^exp × defenseArmorFactor',
     '',
     'defenseScore',
   )
@@ -421,7 +430,10 @@ function attachValidationChecks(): void {
       row[3] = n(Number(breakdown.effectiveHealth.toFixed(4)))
     }
     const ctx = getPowerArmorContext(stats.armor)
-    if (row[0] === 'armorRatingEff (K_eff)') {
+    if (row[0] === 'defenseArmorFactor') {
+      row[3] = n(Number(ctx.defenseArmorFactor.toFixed(4)))
+    }
+    if (row[0] === 'armorRating (K, фикс.)') {
       row[3] = n(Number(ctx.armorRating.toFixed(4)))
     }
     if (row[0] === 'refArmorEff') {
