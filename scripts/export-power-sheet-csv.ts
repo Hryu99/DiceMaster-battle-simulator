@@ -87,7 +87,6 @@ const ROW_KEYS = new Set([
   'cfgArmorK',
   'cfgMinDmg',
   'cfgPowerArmorK',
-  'cfgMaxDefArmFactor',
   'cfgHealthDefExp',
   'cfgAvgExtraTargets',
   'cfgCritEff',
@@ -199,12 +198,6 @@ function buildRows(): CsvRow[] {
     'cfgHealthDefExp',
   )
   addRow(
-    'maxDefenseArmorFactor',
-    n(p.maxDefenseArmorFactor),
-    'потолок (1+armor/K) в defenseScore',
-    'cfgMaxDefArmFactor',
-  )
-  addRow(
     'averageExtraTargets',
     n(p.averageExtraTargets),
     'среднее число доп. целей для area',
@@ -251,8 +244,8 @@ function buildRows(): CsvRow[] {
   addRow('—— РАСЧЁТ (модель D1) ——', '', 'колонка D — сверка с Node')
   addRow(
     'defenseArmorFactor',
-    `=MIN(${$(R.cfgMaxDefArmFactor)};1+${b(R.normArm)}/${$(R.cfgPowerArmorK)})`,
-    'вклад брони в defenseScore',
+    `=1+${b(R.normArm)}/${$(R.cfgPowerArmorK)}`,
+    'вклад брони в defenseScore (1+armor/K)',
     '',
     'defArmorFactor',
   )

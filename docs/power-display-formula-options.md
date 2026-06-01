@@ -44,7 +44,7 @@ Offense через `mitigation(referenceArmor)` и масштаб ref от бр�
 Offense **без** mit цели; defense только от своих HP/брони (бой не меняется):
 
 ```text
-defenseArmorFactor = min(maxDefenseArmorFactor, 1 + armor / K)
+defenseArmorFactor = 1 + armor / K
 defenseScore       = health^healthDefenseExponent × defenseArmorFactor
 
 offenseHit         = attack

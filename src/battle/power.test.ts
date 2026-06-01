@@ -26,10 +26,10 @@ const baseStats: CombatantStats = {
 const armorK = BATTLE_CONFIG.power.armorRatingConstant
 
 describe('power model D1', () => {
-  it('defense armor factor grows with armor and caps', () => {
+  it('defense armor factor grows linearly with armor', () => {
     expect(calculatePowerDefenseArmorFactor(0)).toBe(1)
     expect(calculatePowerDefenseArmorFactor(armorK)).toBeCloseTo(2)
-    expect(calculatePowerDefenseArmorFactor(10_000)).toBe(BATTLE_CONFIG.power.maxDefenseArmorFactor)
+    expect(calculatePowerDefenseArmorFactor(10_000)).toBeCloseTo(1 + 10_000 / armorK)
   })
 
   it('main hit equals raw attack (no target mitigation)', () => {

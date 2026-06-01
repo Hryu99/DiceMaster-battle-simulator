@@ -32,12 +32,11 @@ export function normalizeStats(stats: CombatantStats): CombatantStats {
   }
 }
 
-/** Вклад брони в defenseScore: min(cap, 1 + armor/K). */
+/** Вклад брони в defenseScore: 1 + armor/K (без потолка, как линейный рост atk/hp). */
 export function calculatePowerDefenseArmorFactor(armor: number): number {
-  const { armorRatingConstant, maxDefenseArmorFactor } = BATTLE_CONFIG.power
-  const raw = 1 + Math.max(0, armor) / armorRatingConstant
+  const { armorRatingConstant } = BATTLE_CONFIG.power
 
-  return Math.min(maxDefenseArmorFactor, raw)
+  return 1 + Math.max(0, armor) / armorRatingConstant
 }
 
 /** Выживаемость: HP^exp × defenseArmorFactor. */

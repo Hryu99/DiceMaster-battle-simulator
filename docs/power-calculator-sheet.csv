@@ -20,7 +20,6 @@ minDamageMultiplier (бой);0,05;мин. доля урона после бро�
 —— КОНФИГ СИЛЫ, модель D1 (вакуум) ——;;docs/power-display-formula-options.md;
 armorRatingConstant (K);60;"defense: min(cap; 1+armor/K)";
 healthDefenseExponent;0,99;степень HP в defenseScore;
-maxDefenseArmorFactor;2,35;потолок (1+armor/K) в defenseScore;
 averageExtraTargets;1,5;среднее число доп. целей для area;
 critEfficiency;0,59;доля крит-урона в expected hit;
 attackSpeedEfficiency;0,7;эффективность скорости атаки выше 100%;
@@ -44,17 +43,17 @@ area;"=MIN(1;MAX(0;B13/100))";;
 th;"=MAX(0;B14/100)";;
 ;;;
 —— РАСЧЁТ (модель D1) ——;;колонка D — сверка с Node;
-defenseArmorFactor;"=MIN($B$23;1+B38/$B$21)";вклад брони в defenseScore;1,5
-defenseScore;"=POWER(B37;$B$22)*B47";HP^exp × defenseArmorFactor;284,5188
-mainHit (raw attack);=B36;без mit цели;60
-expectedHitDamage;=B49*(1+B40*(B41-1)*$B$25);средний удар с критом;
-effectiveAttackSpeed;"=MAX(1E-9;1+(B39-1)*$B$26)";скорость >100% с коэфф.;
-dps (main);=B50*B51;main DPS;60
-areaDps;=B36*B43*$B$24*$B$27*B51;area без mit цели;
-offensePressure;=B52+B53;main + area DPS;
-sustain (только от main dps);=B52*B42*$B$28;;
-sustainMultiplier;"=1+B55/MAX(1;B54+B48/$B$31)";множитель от lifesteal;
-thornsRaw;=B38*B44;armor × thorns%;
-thornsValue;=B57*$B$30*$B$29;без mit цели;
-offenseScore;=B54+B58;DPS + area + thorns;
-СИЛА (power);"=POWER(B48;$B$32)*POWER(B59;$B$33)*B56";defense^wDef × offense^wOff × sustain;130,6565
+defenseArmorFactor;=1+B37/$B$21;вклад брони в defenseScore (1+armor/K);1,5
+defenseScore;"=POWER(B36;$B$22)*B46";HP^exp × defenseArmorFactor;284,5188
+mainHit (raw attack);=B35;без mit цели;60
+expectedHitDamage;=B48*(1+B39*(B40-1)*$B$24);средний удар с критом;
+effectiveAttackSpeed;"=MAX(1E-9;1+(B38-1)*$B$25)";скорость >100% с коэфф.;
+dps (main);=B49*B50;main DPS;60
+areaDps;=B35*B42*$B$23*$B$26*B50;area без mit цели;
+offensePressure;=B51+B52;main + area DPS;
+sustain (только от main dps);=B51*B41*$B$27;;
+sustainMultiplier;"=1+B54/MAX(1;B53+B47/$B$30)";множитель от lifesteal;
+thornsRaw;=B37*B43;armor × thorns%;
+thornsValue;=B56*$B$29*$B$28;без mit цели;
+offenseScore;=B53+B57;DPS + area + thorns;
+СИЛА (power);"=POWER(B47;$B$31)*POWER(B58;$B$32)*B55";defense^wDef × offense^wOff × sustain;130,6565

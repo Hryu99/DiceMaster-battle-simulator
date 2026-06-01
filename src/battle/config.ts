@@ -11,7 +11,6 @@ export const BATTLE_CONFIG = {
     /** K в defense: min(cap, 1 + armor/K). */
     armorRatingConstant: 60,
     healthDefenseExponent: 0.99,
-    maxDefenseArmorFactor: 2.35,
     averageExtraTargets: 1.5,
     critEfficiency: 0.59,
     attackSpeedEfficiency: 0.70,
