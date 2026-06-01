@@ -33,32 +33,34 @@
 
 ---
 
-## Вариант B — компонентная сила + мягкая броня (принят)
+## Вариант B — компонентная сила + мягкая броня (снят)
 
-Отдельная модель брони **только для силы** (бой без изменений):
+Offense через `mitigation(referenceArmor)` и масштаб ref от брони героя. Заменён на **D1**.
+
+---
+
+## Вариант D1 — вакуум (принят)
+
+Offense **без** mit цели; defense только от своих HP/брони (бой не меняется):
 
 ```text
-mitigation(armor) = armor / (armor + K)
+defenseArmorFactor = min(maxDefenseArmorFactor, 1 + armor / K)
+defenseScore       = health^healthDefenseExponent × defenseArmorFactor
 
-defenseScore  = health^healthDefenseExponent × (1 + armor / K)   // exp ≤ 1 ослабляет чистый HP
-offenseHit    = attack × (1 − mitigation(referenceArmor))
-expectedHit   = offenseHit × (1 + critChance × (critDamage − 1) × critEfficiency)
-mainDps       = expectedHit × effectiveAttackSpeed
-areaDps       = attack × areaAttack × (1 − mitigation(referenceArmor)) × avgExtraTargets × areaEff × effectiveAttackSpeed
-thornsScore   = armor × thorns% × (1 − mitigation(referenceArmor)) × thornsEfficiency × refAttackSpeed
-sustainMult   = 1 + (mainDps × lifesteal × lsEff) / (mainDps + areaDps + defenseScore / sustainEhpDiv)
+offenseHit         = attack
+expectedHit        = offenseHit × (1 + critChance × (critDamage − 1) × critEfficiency)
+mainDps            = expectedHit × effectiveAttackSpeed
+areaDps            = attack × areaAttack × avgExtraTargets × areaEff × effectiveAttackSpeed
+thornsScore        = armor × thorns% × refAttackSpeed × thornsEfficiency
+sustainMult        = 1 + (mainDps × lifesteal × lsEff) / (mainDps + areaDps + defenseScore / sustainEhpDiv)
 
-displayPower  = defenseScore^wDef × (mainDps + areaDps + thornsScore)^wOff × sustainMult
+displayPower       = defenseScore^wDef × (mainDps + areaDps + thornsScore)^wOff × sustainMult
 ```
 
-- **Нет** эталонного противника от статов героя и **нет** reference tier power в UI.
-- `referenceArmor`, `K` — константы в `config.ts`.
-- Hit impact **убран** (не про «статы в вакууме»).
+**Плюсы:** нет скрытой «мишени»; +броня не режет offense в силе.  
+**Минусы:** сила слабее коррелирует с 1v1 → Stress Lab / матчмейкинг отдельно.
 
-**Плюсы:** монотонность, стабильная цифра для игрока, меньше парадоксов atk vs arm.  
-**Минусы:** сила хуже совпадает с 1v1 → веса заново через Stress Lab.
-
-**Реализация:** `src/battle/power.ts`, параметры `BATTLE_CONFIG.power` (см. `config.ts`).
+**Реализация:** `src/battle/power.ts`, `BATTLE_CONFIG.power` в `config.ts`.
 
 ---
 
@@ -88,11 +90,10 @@ displayPower = defenseScore + offenseScore + sustainScore + thornsScore
 
 ---
 
-## План после внедрения B
+## План после D1
 
-1. Property-тесты монотонности по всем статам (`power.test.ts`).
-2. Stress Lab @150 / 500 / 1000 — подкрутка `K`, `referenceArmor`, весов `wDef`/`wOff`, efficiency.
-3. Excel: `npm run export:power-sheet` (формулы под модель B).
-4. GDD — краткая ссылка на этот документ и блок «Расчёт силы».
+1. Монотонность — `power.test.ts`.
+2. Stress Lab @150 / 500 / 1000 — подкрутка `K`, cap, efficiency (без `referenceArmor`).
+3. Excel: `npm run export:power-sheet`.
 
 Связано: [power-formula-balance-plan.md](./power-formula-balance-plan.md), [battle-simulator-gdd.md](./battle-simulator-gdd.md).

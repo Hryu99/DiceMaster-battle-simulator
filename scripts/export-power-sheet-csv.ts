@@ -4,8 +4,6 @@
  * - decimal separator: comma (,)
  * - formula argument separator: semicolon (;)
  *
- * Row numbers in formulas are assigned automatically (see R.* at end of export log).
- *
  * Run: npm run export:power-sheet
  */
 import { writeFileSync } from 'node:fs'
@@ -15,10 +13,8 @@ import { BATTLE_CONFIG } from '../src/battle/config.ts'
 import { GEAR_CONFIG } from '../src/battle/gear/gearConfig.ts'
 import {
   calculatePower,
+  calculatePowerDefenseArmorFactor,
   calculatePowerDefenseScore,
-  calculatePowerEffectiveDamage,
-  getPowerArmorContext,
-  getPowerReferenceProfile,
 } from '../src/battle/power.ts'
 import type { CombatantStats } from '../src/battle/types.ts'
 
@@ -28,7 +24,6 @@ const FIELD_SEP = ';'
 
 type CsvRow = [string, string, string, string]
 
-/** Стартовые статы в блоке «ВВОД СТАТОВ» и для сверки в колонке D. */
 const DEFAULT_SHEET_HERO_STATS: CombatantStats = {
   attack: 60,
   health: 200,
@@ -41,7 +36,6 @@ const DEFAULT_SHEET_HERO_STATS: CombatantStats = {
   thorns: 0,
 }
 
-/** Номера строк на листе (строка 1 = заголовок CSV). */
 const R: Record<string, number> = {}
 
 let sheetRow = 1
@@ -71,7 +65,6 @@ function rowToCsvLine(cells: string[]): string {
   return cells.map(escapeCsvField).join(FIELD_SEP)
 }
 
-/** Текстовые колонки C/D: не начинать с «=», иначе Excel воспримет как формулу. */
 function safeTextColumn(text: string): string {
   const trimmed = text.trim()
   if (trimmed.startsWith('=')) {
@@ -93,26 +86,16 @@ const ROW_KEYS = new Set([
   'thorns',
   'cfgArmorK',
   'cfgMinDmg',
-  'cfgPlayerBaseAtk',
-  'cfgPlayerBaseHp',
-  'cfgPlayerBaseDef',
-  'cfgPlayerBaseSpd',
-  'cfgAvgExtraTargets',
   'cfgPowerArmorK',
-  'cfgArmScaleBase',
-  'cfgOffRefScaleExp',
   'cfgMaxDefArmFactor',
   'cfgHealthDefExp',
-  'cfgRefArmor',
-  'armorScale',
-  'armorRatingEff',
-  'defArmorFactor',
-  'refArmorEff',
+  'cfgAvgExtraTargets',
   'cfgCritEff',
   'cfgAtkSpdEff',
   'cfgAreaEff',
   'cfgLsEff',
   'cfgThornsEff',
+  'cfgPlayerBaseSpd',
   'cfgSustainEhpDiv',
   'cfgDefW',
   'cfgOffW',
@@ -125,20 +108,19 @@ const ROW_KEYS = new Set([
   'normLs',
   'normArea',
   'normTh',
-  'mitRef',
+  'defArmorFactor',
   'defenseScore',
   'mainHit',
   'expectedHit',
   'effSpd',
   'dps',
-  'areaHit',
   'areaDps',
   'offensePressure',
   'sustain',
   'sustainMult',
   'thornsRaw',
-  'thornsHit',
   'thornsValue',
+  'offenseScore',
   'power',
 ])
 
@@ -162,19 +144,6 @@ function addRow(label: string, value: string, note = '', fourth = '', fifth?: st
   }
 
   return sheetRow
-}
-
-/** Модель B: mit = armor / (armor + K_eff) */
-function powerMitigationFormula(armorExpr: string, ratingRow: number): string {
-  const wrapped = armorExpr.startsWith('(') ? armorExpr : `(${armorExpr})`
-  return `=${wrapped}/(${wrapped}+${b(ratingRow)})`
-}
-
-/** attack × (1 − mit(refArmorEff)) с K_eff */
-function powerDamageFormula(attackExpr: string): string {
-  const atk = attackExpr.startsWith('(') ? attackExpr : `(${attackExpr})`
-  const mit = powerMitigationFormula(b(R.refArmorEff), R.armorRatingEff)
-  return `=IF(${atk}<=0;0;${atk}*(1-${mit.slice(1)}))`
 }
 
 function buildRows(): CsvRow[] {
@@ -216,30 +185,18 @@ function buildRows(): CsvRow[] {
     'cfgMinDmg',
   )
   addRow('', '', '')
-  addRow('—— КОНФИГ СИЛЫ, модель B ——', '', 'docs/power-display-formula-options.md')
+  addRow('—— КОНФИГ СИЛЫ, модель D1 (вакуум) ——', '', 'docs/power-display-formula-options.md')
   addRow(
     'armorRatingConstant (K)',
     n(p.armorRatingConstant),
-    'mit = armor / (armor + K)',
+    'defense: min(cap; 1+armor/K)',
     'cfgPowerArmorK',
   )
   addRow(
     'healthDefenseExponent',
     n(p.healthDefenseExponent),
-    'степень HP в defenseScore (1 = линейно)',
+    'степень HP в defenseScore',
     'cfgHealthDefExp',
-  )
-  addRow(
-    'armorScaleBaseline',
-    n(p.armorScaleBaseline),
-    'armorScale = max(1; armor/baseline); только стат героя',
-    'cfgArmScaleBase',
-  )
-  addRow(
-    'offenseReferenceScaleExponent',
-    n(p.offenseReferenceScaleExponent),
-    'refArmorEff = ref × armorScale^exp',
-    'cfgOffRefScaleExp',
   )
   addRow(
     'maxDefenseArmorFactor',
@@ -248,36 +205,25 @@ function buildRows(): CsvRow[] {
     'cfgMaxDefArmFactor',
   )
   addRow(
-    'referenceArmorForOffense (при scale=1)',
-    n(p.referenceArmorForOffense),
-    'refArmorEff = это × armorScale^exp',
-    'cfgRefArmor',
-  )
-  addRow(
     'averageExtraTargets',
     n(p.averageExtraTargets),
-    'среднее число доп. целей для массовой атаки в силе',
+    'среднее число доп. целей для area',
     'cfgAvgExtraTargets',
   )
-  addRow('critEfficiency', n(p.critEfficiency), 'доля крит-урона, учитываемая в expected hit', 'cfgCritEff')
+  addRow('critEfficiency', n(p.critEfficiency), 'доля крит-урона в expected hit', 'cfgCritEff')
   addRow(
     'attackSpeedEfficiency',
     n(p.attackSpeedEfficiency),
     'эффективность скорости атаки выше 100%',
     'cfgAtkSpdEff',
   )
-  addRow('areaEfficiency', n(p.areaEfficiency), 'эффективность урона по области в effective DPS', 'cfgAreaEff')
-  addRow(
-    'lifestealEfficiency',
-    n(p.lifestealEfficiency),
-    'доля main DPS × lifesteal, идущая в sustain',
-    'cfgLsEff',
-  )
-  addRow('thornsEfficiency', n(p.thornsEfficiency), 'множитель ценности шипов', 'cfgThornsEff')
+  addRow('areaEfficiency', n(p.areaEfficiency), 'множитель area DPS', 'cfgAreaEff')
+  addRow('lifestealEfficiency', n(p.lifestealEfficiency), 'доля main DPS в sustain', 'cfgLsEff')
+  addRow('thornsEfficiency', n(p.thornsEfficiency), 'множитель шипов', 'cfgThornsEff')
   addRow(
     'playerBaseSpeed (шипы)',
     n(GEAR_CONFIG.playerBase.speed / 100),
-    'множитель скорости для thorns в силе',
+    'скорость «входящих ударов» для thorns',
     'cfgPlayerBaseSpd',
   )
   addRow(
@@ -286,8 +232,8 @@ function buildRows(): CsvRow[] {
     'defenseScore в знаменателе sustain',
     'cfgSustainEhpDiv',
   )
-  addRow('defensePowerWeight', n(p.defensePowerWeight), 'степень defenseScore в силе', 'cfgDefW')
-  addRow('offensePowerWeight', n(p.offensePowerWeight), 'степень offense в силе', 'cfgOffW')
+  addRow('defensePowerWeight', n(p.defensePowerWeight), 'степень defenseScore', 'cfgDefW')
+  addRow('offensePowerWeight', n(p.offensePowerWeight), 'степень offenseScore', 'cfgOffW')
   addRow('', '', '')
 
   addRow('—— НОРМАЛИЗАЦИЯ (как normalizeStats) ——', '', '')
@@ -302,15 +248,7 @@ function buildRows(): CsvRow[] {
   addRow('th', `=MAX(0;${b(R.thorns)}/100)`, '', 'normTh')
   addRow('', '', '')
 
-  addRow('—— РАСЧЁТ (модель B) ——', '', 'колонка D — сверка с Node')
-  addRow(
-    'armorScale',
-    `=MAX(1;${b(R.normArm)}/${$(R.cfgArmScaleBase)})`,
-    'масштаб от брони героя (не tier локации)',
-    '',
-    'armorScale',
-  )
-  addRow('armorRating (K, фикс.)', `=${$(R.cfgPowerArmorK)}`, 'K для mit offense', '', 'armorRatingEff')
+  addRow('—— РАСЧЁТ (модель D1) ——', '', 'колонка D — сверка с Node')
   addRow(
     'defenseArmorFactor',
     `=MIN(${$(R.cfgMaxDefArmFactor)};1+${b(R.normArm)}/${$(R.cfgPowerArmorK)})`,
@@ -319,77 +257,49 @@ function buildRows(): CsvRow[] {
     'defArmorFactor',
   )
   addRow(
-    'refArmorEff',
-    `=${$(R.cfgRefArmor)}*POWER(${b(R.armorScale)};${$(R.cfgOffRefScaleExp)})`,
-    'броня цели в offense/thorns',
-    '',
-    'refArmorEff',
-  )
-  addRow(
-    'mitigation(refArmorEff)',
-    powerMitigationFormula(b(R.refArmorEff), R.armorRatingEff),
-    'доля поглощения при расчёте урона',
-    '',
-    'mitRef',
-  )
-  addRow(
     'defenseScore',
     `=POWER(${b(R.normHp)};${$(R.cfgHealthDefExp)})*${b(R.defArmorFactor)}`,
-    'выживаемость: HP^exp × defenseArmorFactor',
+    'HP^exp × defenseArmorFactor',
     '',
     'defenseScore',
   )
-  addRow(
-    'mainHit (power armor)',
-    powerDamageFormula(b(R.normAtk)),
-    'атака × (1 − mit(refArmor))',
-    '',
-    'mainHit',
-  )
+  addRow('mainHit (raw attack)', `=${b(R.normAtk)}`, 'без mit цели', '', 'mainHit')
   addRow(
     'expectedHitDamage',
     `=${b(R.mainHit)}*(1+${b(R.normCritC)}*(${b(R.normCritD)}-1)*${$(R.cfgCritEff)})`,
-    'средний удар с критом (expected)',
+    'средний удар с критом',
     '',
     'expectedHit',
   )
   addRow(
     'effectiveAttackSpeed',
     `=MAX(1E-9;1+(${b(R.normSpd)}-1)*${$(R.cfgAtkSpdEff)})`,
-    'скорость атаки >100% с коэфф.',
+    'скорость >100% с коэфф.',
     '',
     'effSpd',
   )
   addRow('dps (main)', `=${b(R.expectedHit)}*${b(R.effSpd)}`, 'main DPS', '', 'dps')
   addRow(
-    'areaHit (power armor)',
-    powerDamageFormula(`${b(R.normAtk)}*${b(R.normArea)}`),
-    'area через mit(refArmor)',
-    '',
-    'areaHit',
-  )
-  addRow(
     'areaDps',
-    `=${b(R.areaHit)}*${$(R.cfgAvgExtraTargets)}*${$(R.cfgAreaEff)}*${b(R.effSpd)}`,
-    'вклад area в давление',
+    `=${b(R.normAtk)}*${b(R.normArea)}*${$(R.cfgAvgExtraTargets)}*${$(R.cfgAreaEff)}*${b(R.effSpd)}`,
+    'area без mit цели',
     '',
     'areaDps',
   )
   addRow('offensePressure', `=${b(R.dps)}+${b(R.areaDps)}`, 'main + area DPS', '', 'offensePressure')
-  addRow('sustain (только от main dps)', `=${b(R.dps)}*${b(R.normLs)}*${$(R.cfgLsEff)}`, 'хил только от обычной атаки', '', 'sustain')
+  addRow('sustain (только от main dps)', `=${b(R.dps)}*${b(R.normLs)}*${$(R.cfgLsEff)}`, '', '', 'sustain')
   addRow(
     'sustainMultiplier',
     `=1+${b(R.sustain)}/MAX(1;${b(R.offensePressure)}+${b(R.defenseScore)}/${$(R.cfgSustainEhpDiv)})`,
-    'множитель силы от lifesteal',
+    'множитель от lifesteal',
     '',
     'sustainMult',
   )
-  addRow('thornsRaw', `=${b(R.normArm)}*${b(R.normTh)}`, 'сырой урон шипов', '', 'thornsRaw')
-  addRow('thornsHit (power armor)', powerDamageFormula(b(R.thornsRaw)), 'шипы vs refArmor', '', 'thornsHit')
+  addRow('thornsRaw', `=${b(R.normArm)}*${b(R.normTh)}`, 'armor × thorns%', '', 'thornsRaw')
   addRow(
     'thornsValue',
-    `=${b(R.thornsHit)}*${$(R.cfgPlayerBaseSpd)}*${$(R.cfgThornsEff)}`,
-    'шипы в pressure',
+    `=${b(R.thornsRaw)}*${$(R.cfgPlayerBaseSpd)}*${$(R.cfgThornsEff)}`,
+    'без mit цели',
     '',
     'thornsValue',
   )
@@ -418,33 +328,16 @@ function statsFromSheetDefaults(): CombatantStats {
 function attachValidationChecks(): void {
   const stats = statsFromSheetDefaults()
   const breakdown = calculatePower(stats)
-  const reference = getPowerReferenceProfile()
-  const mitRef =
-    reference.armor / (reference.armor + BATTLE_CONFIG.power.armorRatingConstant)
 
   for (const row of rows) {
-    if (row[0] === 'mitigation(referenceArmor)') {
-      row[3] = n(Number(mitRef.toFixed(4)))
+    if (row[0] === 'defenseArmorFactor') {
+      row[3] = n(Number(calculatePowerDefenseArmorFactor(stats.armor).toFixed(4)))
     }
     if (row[0] === 'defenseScore') {
       row[3] = n(Number(breakdown.effectiveHealth.toFixed(4)))
     }
-    const ctx = getPowerArmorContext(stats.armor)
-    if (row[0] === 'defenseArmorFactor') {
-      row[3] = n(Number(ctx.defenseArmorFactor.toFixed(4)))
-    }
-    if (row[0] === 'armorRating (K, фикс.)') {
-      row[3] = n(Number(ctx.armorRating.toFixed(4)))
-    }
-    if (row[0] === 'refArmorEff') {
-      row[3] = n(Number(ctx.referenceArmor.toFixed(4)))
-    }
-    if (row[0] === 'mainHit (power armor)') {
-      row[3] = n(
-        Number(
-          calculatePowerEffectiveDamage(stats.attack, ctx.referenceArmor, ctx.armorRating).toFixed(4),
-        ),
-      )
+    if (row[0] === 'mainHit (raw attack)') {
+      row[3] = n(stats.attack)
     }
     if (row[0] === 'СИЛА (power)') {
       row[3] = n(Number(breakdown.power.toFixed(4)))

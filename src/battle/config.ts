@@ -1,36 +1,23 @@
 /**
  * Боевой и power-конфиг симулятора.
  *
- * Видимая сила: модель B — docs/power-display-formula-options.md
- * Баланс весов: Stress Lab + журнал в docs/power-formula-balance-plan.md
+ * Видимая сила: модель D1 (вакуум) — только статы героя, без «мишени» в offense.
+ * Бой: armorDamageConstant / minDamageMultiplier — отдельно, не меняются ради силы.
  */
 export const BATTLE_CONFIG = {
-  armorDamageConstant: 1, // константа K в формуле снижения урона бронёй (только бой)
-  minDamageMultiplier: 0.05, // минимальная доля входящего урона после брони (только бой)
+  armorDamageConstant: 1, // K в calculateArmorReducedDamage (только бой)
+  minDamageMultiplier: 0.05, // мин. доля урона после брони (только бой)
   power: {
-    /** Модель B: mit = armor / (armor + armorRatingConstant) */
-    armorRatingConstant: 60, // B-stress-2: tank-health 41% — ещё ↓ броня в defenseScore
-    /** Степень HP в defenseScore (<1 ослабляет чистые HP-танки). */
+    /** K в defense: min(cap, 1 + armor/K). */
+    armorRatingConstant: 60,
     healthDefenseExponent: 0.99,
-    /**
-     * База для armorScale = max(1, armor / baseline). Только стат героя, не tier локации.
-     * ~средняя броня Stress @150; при 288 брони scale≈7 → refArmor и K растут вместе со статами.
-     */
-    armorScaleBaseline: 40,
-    /** refArmorEff = referenceArmorForOffense × armorScale^exp (offense/thorns). */
-    offenseReferenceScaleExponent: 1,
-    /** K_eff = armorRatingConstant × armorScale^exp (legacy offense mit; defense uses fixed K + cap). */
-    armorContextScaleExponent: 0.65,
-    /** Потолок (1 + armor/K) в defenseScore. */
     maxDefenseArmorFactor: 2.35,
-    /** Фикс. броня цели при armor = armorScaleBaseline. */
-    referenceArmorForOffense: 29,
     averageExtraTargets: 1.5,
     critEfficiency: 0.59,
-    attackSpeedEfficiency: 0.70, // B-stress-2: speed-heavy 45% — слегка ↓ (переоценка)
+    attackSpeedEfficiency: 0.70,
     areaEfficiency: 1,
     lifestealEfficiency: 0.38,
-    thornsEfficiency: 0.66, // B-stress-2: thorns 59% после среза 0.58 — поднять
+    thornsEfficiency: 0.66,
     sustainEffectiveHealthDivisor: 20,
     defensePowerWeight: 0.5,
     offensePowerWeight: 0.5,

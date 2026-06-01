@@ -2,10 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { BATTLE_CONFIG } from './config'
 import {
   calculatePower,
-  calculatePowerArmorMitigation,
+  calculatePowerDefenseArmorFactor,
   calculatePowerDefenseScore,
-  calculatePowerEffectiveDamage,
-  getPowerArmorContext,
   getPowerReferenceProfile,
   getReferenceIncomingAttackSpeedBase,
   getReferenceStatScales,
@@ -25,21 +23,20 @@ const baseStats: CombatantStats = {
   thorns: 0,
 }
 
-const referenceArmor = BATTLE_CONFIG.power.referenceArmorForOffense
 const armorK = BATTLE_CONFIG.power.armorRatingConstant
 
-describe('power model B', () => {
-  it('mitigation grows with armor and stays below 1', () => {
-    expect(calculatePowerArmorMitigation(0)).toBe(0)
-    expect(calculatePowerArmorMitigation(armorK)).toBeCloseTo(0.5)
-    expect(calculatePowerArmorMitigation(1000)).toBeLessThan(1)
+describe('power model D1', () => {
+  it('defense armor factor grows with armor and caps', () => {
+    expect(calculatePowerDefenseArmorFactor(0)).toBe(1)
+    expect(calculatePowerDefenseArmorFactor(armorK)).toBeCloseTo(2)
+    expect(calculatePowerDefenseArmorFactor(10_000)).toBe(BATTLE_CONFIG.power.maxDefenseArmorFactor)
   })
 
-  it('effective damage is linear in attack for fixed armor', () => {
-    const low = calculatePowerEffectiveDamage(20, referenceArmor)
-    const high = calculatePowerEffectiveDamage(40, referenceArmor)
-
-    expect(high).toBeCloseTo(low * 2)
+  it('main hit equals raw attack (no target mitigation)', () => {
+    expect(calculatePower({ ...baseStats, attack: 40 }).expectedHitDamage).toBeGreaterThan(
+      calculatePower({ ...baseStats, attack: 20 }).expectedHitDamage,
+    )
+    expect(calculatePower({ ...baseStats, attack: 50, critChance: 0 }).expectedHitDamage).toBe(50)
   })
 })
 
@@ -87,30 +84,23 @@ describe('calculatePower', () => {
     )
   })
 
-  it('applies crit after power armor on main hit', () => {
+  it('applies crit to raw attack on main hit', () => {
     const breakdown = calculatePower({
       ...baseStats,
       attack: 100,
       critChance: 100,
       critDamage: 200,
     })
-    const offenseHit = calculatePowerEffectiveDamage(
-      100,
-      getPowerArmorContext(baseStats.armor).referenceArmor,
-      getPowerArmorContext(baseStats.armor).armorRating,
-    )
 
-    expect(breakdown.expectedHitDamage).toBeCloseTo(
-      offenseHit * (1 + BATTLE_CONFIG.power.critEfficiency),
-    )
+    expect(breakdown.expectedHitDamage).toBeCloseTo(100 * (1 + BATTLE_CONFIG.power.critEfficiency))
   })
 
   it('values area attack with average extra targets', () => {
     const baseBreakdown = calculatePower(baseStats)
     const areaBreakdown = calculatePower({ ...baseStats, areaAttack: 80 })
-    const ctx = getPowerArmorContext(baseStats.armor)
     const expectedAreaDps =
-      calculatePowerEffectiveDamage(30 * 0.8, ctx.referenceArmor, ctx.armorRating) *
+      30 *
+      0.8 *
       BATTLE_CONFIG.power.averageExtraTargets *
       BATTLE_CONFIG.power.areaEfficiency *
       1
@@ -130,11 +120,9 @@ describe('calculatePower', () => {
 
   it('discounts attack speed above baseline in dps', () => {
     const breakdown = calculatePower({ ...baseStats, attackSpeed: 200, critChance: 0 })
-    const ctx = getPowerArmorContext(baseStats.armor)
-    const offenseHit = calculatePowerEffectiveDamage(baseStats.attack, ctx.referenceArmor, ctx.armorRating)
     const expectedAttackSpeed = 1 + (2 - 1) * BATTLE_CONFIG.power.attackSpeedEfficiency
 
-    expect(breakdown.dps).toBeCloseTo(offenseHit * expectedAttackSpeed)
+    expect(breakdown.dps).toBeCloseTo(baseStats.attack * expectedAttackSpeed)
   })
 
   it('combines defense and offense with sustain multiplier', () => {
@@ -156,36 +144,27 @@ describe('calculatePower', () => {
     )
   })
 
-  it('values thorns through power armor against reference armor', () => {
+  it('values thorns without target armor mitigation', () => {
     const statsWithThorns = { ...baseStats, armor: 200, thorns: 10 }
     const breakdown = calculatePower(statsWithThorns)
 
-    const ctx = getPowerArmorContext(statsWithThorns.armor)
     expect(breakdown.thornsValue).toBeCloseTo(
-      calculatePowerEffectiveDamage(200 * 0.1, ctx.referenceArmor, ctx.armorRating) *
-        getReferenceIncomingAttackSpeedBase() *
-        BATTLE_CONFIG.power.thornsEfficiency,
+      200 * 0.1 * getReferenceIncomingAttackSpeedBase() * BATTLE_CONFIG.power.thornsEfficiency,
     )
   })
 
-  it('scales armor context with hero armor stat (tier-invariant, not location)', () => {
-    const low = getPowerArmorContext(40)
-    const high = getPowerArmorContext(400)
+  it('does not reduce offense when hero armor grows (vacuum offense)', () => {
+    const lowArmor = calculatePower({ ...baseStats, armor: 40 }).expectedHitDamage
+    const highArmor = calculatePower({ ...baseStats, armor: 400 }).expectedHitDamage
 
-    expect(low.armorScale).toBe(1)
-    expect(high.armorScale).toBe(10)
-    expect(high.referenceArmor).toBeGreaterThan(low.referenceArmor)
-    expect(high.armorRating).toBe(low.armorRating)
-    expect(high.defenseArmorFactor).toBeGreaterThan(low.defenseArmorFactor)
-    expect(high.defenseArmorFactor).toBe(BATTLE_CONFIG.power.maxDefenseArmorFactor)
-    expect(
-      calculatePowerEffectiveDamage(300, high.referenceArmor, high.armorRating),
-    ).toBeLessThan(calculatePowerEffectiveDamage(300, low.referenceArmor, low.armorRating))
+    expect(highArmor).toBeCloseTo(lowArmor)
   })
 
-  it('exposes reference profile from hero armor for diagnostics', () => {
-    expect(getPowerReferenceProfile(40).armor).toBeCloseTo(referenceArmor)
-    expect(getPowerReferenceProfile(400).armor).toBeCloseTo(referenceArmor * 10)
+  it('exposes fixed playerBase reference profile for diagnostics', () => {
+    expect(getPowerReferenceProfile()).toEqual({
+      attack: GEAR_CONFIG.playerBase.attack,
+      armor: GEAR_CONFIG.playerBase.defence,
+    })
   })
 
   it('exposes hero-to-base ratios for diagnostics', () => {

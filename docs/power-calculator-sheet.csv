@@ -17,23 +17,20 @@ Thorns, %;0;;
 armorDamageConstant (бой);1;K в calculateArmorReducedDamage;
 minDamageMultiplier (бой);0,05;мин. доля урона после брони в бою;
 ;;;
-—— КОНФИГ СИЛЫ, модель B ——;;docs/power-display-formula-options.md;
-armorRatingConstant (K);60;mit = armor / (armor + K);
-healthDefenseExponent;0,99;степень HP в defenseScore (1 = линейно);
-armorScaleBaseline;40;"armorScale = max(1; armor/baseline); только стат героя";
-offenseReferenceScaleExponent;1;refArmorEff = ref × armorScale^exp;
+—— КОНФИГ СИЛЫ, модель D1 (вакуум) ——;;docs/power-display-formula-options.md;
+armorRatingConstant (K);60;"defense: min(cap; 1+armor/K)";
+healthDefenseExponent;0,99;степень HP в defenseScore;
 maxDefenseArmorFactor;2,35;потолок (1+armor/K) в defenseScore;
-referenceArmorForOffense (при scale=1);29;refArmorEff = это × armorScale^exp;
-averageExtraTargets;1,5;среднее число доп. целей для массовой атаки в силе;
-critEfficiency;0,59;доля крит-урона, учитываемая в expected hit;
+averageExtraTargets;1,5;среднее число доп. целей для area;
+critEfficiency;0,59;доля крит-урона в expected hit;
 attackSpeedEfficiency;0,7;эффективность скорости атаки выше 100%;
-areaEfficiency;1;эффективность урона по области в effective DPS;
-lifestealEfficiency;0,38;доля main DPS × lifesteal, идущая в sustain;
-thornsEfficiency;0,66;множитель ценности шипов;
-playerBaseSpeed (шипы);1;множитель скорости для thorns в силе;
+areaEfficiency;1;множитель area DPS;
+lifestealEfficiency;0,38;доля main DPS в sustain;
+thornsEfficiency;0,66;множитель шипов;
+playerBaseSpeed (шипы);1;скорость «входящих ударов» для thorns;
 sustainEffectiveHealthDivisor;20;defenseScore в знаменателе sustain;
-defensePowerWeight;0,5;степень defenseScore в силе;
-offensePowerWeight;0,5;степень offense в силе;
+defensePowerWeight;0,5;степень defenseScore;
+offensePowerWeight;0,5;степень offenseScore;
 ;;;
 —— НОРМАЛИЗАЦИЯ (как normalizeStats) ——;;;
 atk;"=MAX(0;B6)";;
@@ -46,24 +43,18 @@ ls;"=MIN(1;MAX(0;B12/100))";;
 area;"=MIN(1;MAX(0;B13/100))";;
 th;"=MAX(0;B14/100)";;
 ;;;
-—— РАСЧЁТ (модель B) ——;;колонка D — сверка с Node;
-armorScale;"=MAX(1;B41/$B$23)";масштаб от брони героя (не tier локации);
-armorRating (K, фикс.);=$B$21;K для mit offense;60
-defenseArmorFactor;"=MIN($B$25;1+B41/$B$21)";вклад брони в defenseScore;1,5
-refArmorEff;"=$B$26*POWER(B50;$B$24)";броня цели в offense/thorns;29
-mitigation(refArmorEff);=(B53)/((B53)+B51);доля поглощения при расчёте урона;
-defenseScore;"=POWER(B40;$B$22)*B52";выживаемость: HP^exp × defenseArmorFactor;284,5188
-mainHit (power armor);"=IF((B39)<=0;0;(B39)*(1-(B53)/((B53)+B51)))";атака × (1 − mit(refArmor));40,4494
-expectedHitDamage;=B56*(1+B43*(B44-1)*$B$28);средний удар с критом (expected);
-effectiveAttackSpeed;"=MAX(1E-9;1+(B42-1)*$B$29)";скорость атаки >100% с коэфф.;
-dps (main);=B57*B58;main DPS;40,4494
-areaHit (power armor);"=IF((B39*B46)<=0;0;(B39*B46)*(1-(B53)/((B53)+B51)))";area через mit(refArmor);
-areaDps;=B60*$B$27*$B$30*B58;вклад area в давление;
-offensePressure;=B59+B61;main + area DPS;
-sustain (только от main dps);=B59*B45*$B$31;хил только от обычной атаки;
-sustainMultiplier;"=1+B63/MAX(1;B62+B55/$B$34)";множитель силы от lifesteal;
-thornsRaw;=B41*B47;сырой урон шипов;
-thornsHit (power armor);"=IF((B65)<=0;0;(B65)*(1-(B53)/((B53)+B51)))";шипы vs refArmor;
-thornsValue;=B66*$B$33*$B$32;шипы в pressure;
-offenseScore;=B62+B67;DPS + area + thorns;
-СИЛА (power);"=POWER(B55;$B$35)*POWER(B68;$B$36)*B64";defense^wDef × offense^wOff × sustain;107,2783
+—— РАСЧЁТ (модель D1) ——;;колонка D — сверка с Node;
+defenseArmorFactor;"=MIN($B$23;1+B38/$B$21)";вклад брони в defenseScore;1,5
+defenseScore;"=POWER(B37;$B$22)*B47";HP^exp × defenseArmorFactor;284,5188
+mainHit (raw attack);=B36;без mit цели;60
+expectedHitDamage;=B49*(1+B40*(B41-1)*$B$25);средний удар с критом;
+effectiveAttackSpeed;"=MAX(1E-9;1+(B39-1)*$B$26)";скорость >100% с коэфф.;
+dps (main);=B50*B51;main DPS;60
+areaDps;=B36*B43*$B$24*$B$27*B51;area без mit цели;
+offensePressure;=B52+B53;main + area DPS;
+sustain (только от main dps);=B52*B42*$B$28;;
+sustainMultiplier;"=1+B55/MAX(1;B54+B48/$B$31)";множитель от lifesteal;
+thornsRaw;=B38*B44;armor × thorns%;
+thornsValue;=B57*$B$30*$B$29;без mit цели;
+offenseScore;=B54+B58;DPS + area + thorns;
+СИЛА (power);"=POWER(B48;$B$32)*POWER(B59;$B$33)*B56";defense^wDef × offense^wOff × sustain;130,6565
