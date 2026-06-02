@@ -108,6 +108,8 @@ const ROW_KEYS = new Set([
   'normLs',
   'normArea',
   'normTh',
+  'defenseAnchor',
+  'defenseHeroFactor',
   'defenseScore',
   'mainHit',
   'expectedHit',
@@ -192,7 +194,7 @@ function buildRows(): CsvRow[] {
   addRow(
     'healthDefenseExponent (α)',
     n(p.healthDefenseExponent),
-    'defense = (HP/H₀)^α × (armor/A₀)^(1−α)',
+    'defenseScore = якорь × множитель статов',
     'cfgHealthDefExp',
   )
   addRow(
@@ -241,9 +243,23 @@ function buildRows(): CsvRow[] {
 
   addRow('—— РАСЧЁТ (модель D1) ——', '', 'колонка D — сверка с Node')
   addRow(
+    'defenseAnchor (якорь)',
+    `=POWER(${$(R.cfgRefHp)};${$(R.cfgHealthDefExp)})*POWER(${$(R.cfgRefArm)};1-${$(R.cfgHealthDefExp)})`,
+    'масштаб defense при HP=H₀ и armor=A₀; только конфиг и база, не статы героя',
+    '',
+    'defenseAnchor',
+  )
+  addRow(
+    'defenseHeroFactor (множитель статов)',
+    `=POWER(${b(R.normHp)}/${$(R.cfgRefHp)};${$(R.cfgHealthDefExp)})*POWER(MAX(${b(R.normArm)};${$(R.cfgRefArm)}*0,01)/${$(R.cfgRefArm)};1-${$(R.cfgHealthDefExp)})`,
+    'отношение героя к базе: (HP/H₀)^α × (armor/A₀)^(1−α); при базовых статах = 1',
+    '',
+    'defenseHeroFactor',
+  )
+  addRow(
     'defenseScore',
-    `=POWER(${b(R.normHp)}/${$(R.cfgRefHp)};${$(R.cfgHealthDefExp)})*POWER(MAX(${b(R.normArm)};${$(R.cfgRefArm)}*0,01)/${$(R.cfgRefArm)};1-${$(R.cfgHealthDefExp)})*POWER(${$(R.cfgRefHp)};${$(R.cfgHealthDefExp)})*POWER(${$(R.cfgRefArm)};1-${$(R.cfgHealthDefExp)})`,
-    '(HP/H₀)^α × (armor/A₀)^(1−α) × anchor',
+    `=${b(R.defenseAnchor)}*${b(R.defenseHeroFactor)}`,
+    'выживаемость в силе = якорь × множитель статов',
     '',
     'defenseScore',
   )
@@ -309,13 +325,38 @@ function statsFromSheetDefaults(): CombatantStats {
   return { ...DEFAULT_SHEET_HERO_STATS }
 }
 
+function defenseComponentsForStats(stats: CombatantStats): {
+  anchor: number
+  heroFactor: number
+  score: number
+} {
+  const alpha = BATTLE_CONFIG.power.healthDefenseExponent
+  const hRef = GEAR_CONFIG.playerBase.health
+  const aRef = GEAR_CONFIG.playerBase.defence
+  const armorForScore = Math.max(stats.armor, aRef * 0.01)
+  const anchor = Math.pow(hRef, alpha) * Math.pow(aRef, 1 - alpha)
+  const heroFactor =
+    Math.pow(Math.max(1, stats.health) / hRef, alpha) *
+    Math.pow(armorForScore / aRef, 1 - alpha)
+  const score = calculatePowerDefenseScore(stats.health, stats.armor)
+
+  return { anchor, heroFactor, score }
+}
+
 function attachValidationChecks(): void {
   const stats = statsFromSheetDefaults()
   const breakdown = calculatePower(stats)
+  const defense = defenseComponentsForStats(stats)
 
   for (const row of rows) {
+    if (row[0] === 'defenseAnchor (якорь)') {
+      row[3] = n(Number(defense.anchor.toFixed(4)))
+    }
+    if (row[0] === 'defenseHeroFactor (множитель статов)') {
+      row[3] = n(Number(defense.heroFactor.toFixed(4)))
+    }
     if (row[0] === 'defenseScore') {
-      row[3] = n(Number(breakdown.effectiveHealth.toFixed(4)))
+      row[3] = n(Number(defense.score.toFixed(4)))
     }
     if (row[0] === 'mainHit (raw attack)') {
       row[3] = n(stats.attack)
@@ -339,13 +380,23 @@ function main(): void {
   const csv = [header, ...body].join('\n') + '\n'
   writeFileSync(OUT_PATH, csv, 'utf8')
 
-  const examplePower = calculatePower(statsFromSheetDefaults()).power
+  const stats = statsFromSheetDefaults()
+  const examplePower = calculatePower(stats).power
+  const baseHeroDefense = defenseComponentsForStats({
+    ...stats,
+    health: GEAR_CONFIG.playerBase.health,
+    armor: GEAR_CONFIG.playerBase.defence,
+  })
+
   console.log(`Wrote ${OUT_PATH}`)
   console.log(
-    `Пример (${DEFAULT_SHEET_HERO_STATS.attack}/${DEFAULT_SHEET_HERO_STATS.health}/${DEFAULT_SHEET_HERO_STATS.armor}): power ≈ ${n(Number(examplePower.toFixed(2)))}`,
+    `Пример (${stats.attack}/${stats.health}/${stats.armor}): power ≈ ${n(Number(examplePower.toFixed(2)))}`,
   )
   console.log(
-    `Ключевые строки: defenseScore B${R.defenseScore}, mainHit B${R.mainHit}, СИЛА B${R.power}`,
+    `Ключевые строки: якорь B${R.defenseAnchor}, множитель B${R.defenseHeroFactor}, defense B${R.defenseScore}, СИЛА B${R.power}`,
+  )
+  console.log(
+    `При базе H₀/A₀: heroFactor≈${n(Number(baseHeroDefense.heroFactor.toFixed(4)))}, defenseScore=якорь≈${n(Number(baseHeroDefense.anchor.toFixed(2)))}`,
   )
 }
 
